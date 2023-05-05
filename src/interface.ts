@@ -1,6 +1,7 @@
 import type { TORUS_LEGACY_NETWORK_TYPE } from "@toruslabs/constants";
 import type { TorusSubVerifierInfo } from "@toruslabs/customauth";
 import { CustomChainConfig, SafeEventEmitterProvider } from "@web3auth/base";
+import { IBaseProvider } from "@web3auth/base-provider";
 
 export type InitParams = { network: TORUS_LEGACY_NETWORK_TYPE };
 
@@ -17,7 +18,7 @@ export type UserAuthInfo = { idToken: string };
 
 export interface IWeb3Auth {
   provider: SafeEventEmitterProvider | null;
-  init(): Promise<void>;
+  init(privateKeyProvider: IBaseProvider<string>): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
   authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
@@ -36,8 +37,7 @@ export interface Web3AuthOptions {
    *
    * @defaultValue mainnet config of provided chainNamespace
    */
-  chainConfig: Partial<CustomChainConfig> &
-    Pick<CustomChainConfig, "chainNamespace">;
+  chainConfig: Partial<CustomChainConfig> & Pick<CustomChainConfig, "chainNamespace">;
 
   /**
    * Web3Auth Network to use for login
