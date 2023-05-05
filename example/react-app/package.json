@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@web3auth/base": "^5.1.0",
+    "@web3auth/ethereum-provider": "5.1.1",
     "@web3auth/single-factor-auth": "../../",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",

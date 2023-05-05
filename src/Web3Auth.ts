@@ -15,13 +15,8 @@ import {
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
-import { CommonPrivateKeyProvider, IBaseProvider } from "@web3auth/base-provider";
-import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
 
-import { IWeb3Auth, LoginParams, SessionData, UserAuthInfo, Web3AuthOptions } from "./interface";
-
-type PrivateKeyProvider = IBaseProvider<string>;
+import { IWeb3Auth, LoginParams, PrivateKeyProvider, SessionData, UserAuthInfo, Web3AuthOptions } from "./interface";
 
 class Web3Auth implements IWeb3Auth {
   readonly options: Web3AuthOptions;
@@ -82,7 +77,11 @@ class Web3Auth implements IWeb3Auth {
     return this.privKeyProvider?.provider || null;
   }
 
-  async init(): Promise<void> {
+  async init(provider: PrivateKeyProvider): Promise<void> {
+    if (!provider) {
+      throw WalletInitializationError.invalidParams("provider is required");
+    }
+
     this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
     this.customAuthInstance = new CustomAuth({
       web3AuthClientId: this.options.clientId,
@@ -92,21 +91,7 @@ class Web3Auth implements IWeb3Auth {
       enableLogging: this.options.enableLogging,
     });
 
-    if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA && this.chainConfig) {
-      this.privKeyProvider = new SolanaPrivateKeyProvider({
-        config: { chainConfig: this.chainConfig },
-      });
-    } else if (this.currentChainNamespace === CHAIN_NAMESPACES.EIP155 && this.chainConfig) {
-      this.privKeyProvider = new EthereumPrivateKeyProvider({
-        config: { chainConfig: this.chainConfig },
-      });
-    } else if (this.currentChainNamespace === CHAIN_NAMESPACES.OTHER) {
-      this.privKeyProvider = new CommonPrivateKeyProvider();
-    } else {
-      throw WalletInitializationError.incompatibleChainNameSpace(
-        `Invalid chainNamespace: ${this.currentChainNamespace} found while connecting to wallet`
-      );
-    }
+    this.privKeyProvider = provider;
 
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
@@ -242,8 +227,10 @@ class Web3Auth implements IWeb3Auth {
   private async _getFinalPrivKey(privKey: string) {
     let finalPrivKey = privKey.padStart(64, "0");
     if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA) {
-      const { getED25519Key } = await import("@toruslabs/openlogin-ed25519");
-      finalPrivKey = getED25519Key(finalPrivKey).sk.toString("hex");
+      if (!this.privKeyProvider.getEd25519Key) {
+        throw WalletLoginError.fromCode(5000, "Private key is not valid, Missing getEd25519Key function");
+      }
+      finalPrivKey = this.privKeyProvider.getEd25519Key(finalPrivKey);
     }
     // get app scoped keys.
     if (this.options.usePnPKey) {
