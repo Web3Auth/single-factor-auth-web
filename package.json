@@ -23,6 +23,7 @@
     "test-debugger": "mocha --config ./.mocharc.json --inspect-brk test/**.ts",
     "dev": "torus-scripts start",
     "build": "torus-scripts build",
+    "release": "torus-scripts release",
     "lint": "eslint --fix 'src/**/*.ts'",
     "prepack": "npm run build",
     "pre-commit": "lint-staged --cwd ."
