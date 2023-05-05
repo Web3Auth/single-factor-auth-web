@@ -1,6 +1,9 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
+import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
 import { expect } from "chai";
 
 import { Web3Auth } from "../src";
@@ -13,45 +16,147 @@ const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 describe("torus onekey", function () {
   let singleFactorAuth: Web3Auth;
 
-  beforeEach("one time execution before all tests", async function () {
-    singleFactorAuth = new Web3Auth({
-      clientId: "torus",
-      chainConfig: {
-        chainId: "0x1",
+  describe("Ethereum provider", function () {
+    beforeEach("one time execution before all tests", async function () {
+      const chainConfig = {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
-        rpcTarget: "https://rpc.ankr.com/eth",
-      },
-      web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        chainId: "0x5",
+        rpcTarget: "https://rpc.ankr.com/eth_goerli",
+        displayName: "Goerli Testnet",
+        blockExplorer: "https://goerli.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
+      };
+      singleFactorAuth = new Web3Auth({
+        clientId: "torus",
+        chainConfig,
+        web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+      });
+      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
+      await singleFactorAuth.init(provider);
     });
-    await singleFactorAuth.init();
+
+    it("should get torus key", async function () {
+      const verifier = TORUS_TEST_VERIFIER; // any verifier
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier,
+        verifierId: TORUS_TEST_EMAIL,
+      });
+      const privKey = await provider?.request({ method: "eth_private_key" });
+      expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+    });
+
+    it("should get aggregate torus key", async function () {
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+        verifierId: TORUS_TEST_EMAIL,
+        subVerifierInfoArray: [
+          {
+            verifier: TORUS_TEST_VERIFIER,
+            idToken: token,
+          },
+        ],
+      });
+      const privKey = await provider?.request({ method: "eth_private_key" });
+      expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
+    });
   });
 
-  it("should get torus key", async function () {
-    const verifier = TORUS_TEST_VERIFIER; // any verifier
-    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
-    const provider = await singleFactorAuth.connect({
-      idToken: token,
-      verifier,
-      verifierId: TORUS_TEST_EMAIL,
+  describe("Solana provider", function () {
+    beforeEach("one time execution before all tests", async function () {
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.SOLANA,
+        chainId: "0x2", // Please use 0x1 for Mainnet, 0x2 for Testnet, 0x3 for Devnet
+        rpcTarget: "https://api.testnet.solana.com", // This is the public RPC we have added, please pass on your own endpoint while creating an app
+        displayName: "Solana Mainnet",
+        blockExplorer: "https://explorer.solana.com/",
+        ticker: "SOL",
+        tickerName: "Solana",
+      };
+      singleFactorAuth = new Web3Auth({
+        clientId: "torus",
+        chainConfig,
+        web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+      });
+      const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
+      await singleFactorAuth.init(provider);
     });
-    const privKey = await provider?.request({ method: "eth_private_key" });
-    expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+
+    it("should get torus key", async function () {
+      const verifier = TORUS_TEST_VERIFIER; // any verifier
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier,
+        verifierId: TORUS_TEST_EMAIL,
+      });
+      const privKey = await provider?.request({ method: "solanaSecretKey" });
+      expect(privKey).to.equal("pyqTNUjYGccdvJDEmLP9aXxurnNTrQsMRupGxC7aiHcTbA7RsUV2zvQX5FBnURWEv5PBsjt3pwR3Et7pGE9BoUB");
+    });
+
+    it("should get aggregate torus key", async function () {
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+        verifierId: TORUS_TEST_EMAIL,
+        subVerifierInfoArray: [
+          {
+            verifier: TORUS_TEST_VERIFIER,
+            idToken: token,
+          },
+        ],
+      });
+      const privKey = await provider?.request({ method: "solanaSecretKey" });
+      expect(privKey).to.equal("4TwHtc9mgPafrfyodiyZuTtmGY7uxmskEE9ydchr7fkQfu7y2yYQu2y3qJVRixb13W63FoUPh2WNhLwXh68RU7MG");
+    });
   });
 
-  it("should get aggregate torus key", async function () {
-    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
-    const provider = await singleFactorAuth.connect({
-      idToken: token,
-      verifier: TORUS_TEST_AGGREGATE_VERIFIER,
-      verifierId: TORUS_TEST_EMAIL,
-      subVerifierInfoArray: [
-        {
-          verifier: TORUS_TEST_VERIFIER,
-          idToken: token,
-        },
-      ],
+  describe("Common provider", function () {
+    beforeEach("one time execution before all tests", async function () {
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.OTHER,
+      };
+      singleFactorAuth = new Web3Auth({
+        clientId: "torus",
+        chainConfig,
+        web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+      });
+      const provider = new CommonPrivateKeyProvider();
+      await singleFactorAuth.init(provider);
     });
-    const privKey = await provider?.request({ method: "eth_private_key" });
-    expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
+
+    it("should get torus key", async function () {
+      const verifier = TORUS_TEST_VERIFIER; // any verifier
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier,
+        verifierId: TORUS_TEST_EMAIL,
+      });
+      const privKey = await provider?.request({ method: "private_key" });
+      expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+    });
+
+    it("should get aggregate torus key", async function () {
+      const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+      const provider = await singleFactorAuth.connect({
+        idToken: token,
+        verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+        verifierId: TORUS_TEST_EMAIL,
+        subVerifierInfoArray: [
+          {
+            verifier: TORUS_TEST_VERIFIER,
+            idToken: token,
+          },
+        ],
+      });
+      const privKey = await provider?.request({ method: "private_key" });
+      expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
+    });
   });
 });

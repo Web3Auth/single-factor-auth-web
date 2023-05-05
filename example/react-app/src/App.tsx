@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 // Import Single Factor Auth SDK for no redirect flow
 import { Web3Auth } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES, SafeEventEmitterProvider } from "@web3auth/base";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
 // RPC libraries for blockchain calls
 // import RPC from "./evm.web3";
@@ -64,7 +65,8 @@ function App() {
           usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         setWeb3authSFAuth(web3authSfa);
-        await web3authSfa.init();
+        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
+        await web3authSfa.init(provider);
         if (web3authSfa.provider) {
           setProvider(web3authSfa.provider)
           setUsesSfaSDK(true);
@@ -126,6 +128,8 @@ function App() {
       });
       if (web3authSfaprovider) {
         setProvider(web3authSfaprovider);
+        const privKey = await web3authSfaprovider?.request({ method: "solanaSecretKey" });
+        console.log(privKey);
       }
       setUsesSfaSDK(true);
       setIsLoggingIn(false);
