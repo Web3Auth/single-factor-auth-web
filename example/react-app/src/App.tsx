@@ -128,6 +128,8 @@ function App() {
       });
       if (web3authSfaprovider) {
         setProvider(web3authSfaprovider);
+        const privKey = await web3authSfaprovider?.request({ method: "solanaSecretKey" });
+        console.log(privKey);
       }
       setUsesSfaSDK(true);
       setIsLoggingIn(false);
