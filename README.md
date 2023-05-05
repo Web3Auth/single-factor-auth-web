@@ -56,7 +56,7 @@ const web3auth = new Web3Auth({
     chainId: "0x1",
     rpcTarget: "https://rpc.ankr.com/eth",
   },
-  web3AuthNetwork: 'mainnet'
+  web3AuthNetwork: "mainnet",
 });
 
 await web3auth.init();

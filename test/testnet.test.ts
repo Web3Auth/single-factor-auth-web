@@ -35,9 +35,7 @@ describe("torus onekey", function () {
       verifierId: TORUS_TEST_EMAIL,
     });
     const privKey = await provider?.request({ method: "eth_private_key" });
-    expect(privKey).to.equal(
-      "296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4"
-    );
+    expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
   });
 
   it("should get aggregate torus key", async function () {
@@ -54,8 +52,6 @@ describe("torus onekey", function () {
       ],
     });
     const privKey = await provider?.request({ method: "eth_private_key" });
-    expect(privKey).to.equal(
-      "ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2"
-    );
+    expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
   });
 });
