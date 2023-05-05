@@ -71,7 +71,6 @@
     "lint-staged": "^13.2.2",
     "mocha": "^10.2.0",
     "node-fetch": "^3.3.1",
-    "prettier": "^2.8.8",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
@@ -81,8 +80,7 @@
   },
   "lint-staged": {
     "!(*d).ts": [
-      "eslint --cache --fix",
-      "prettier --write"
+      "eslint --cache --fix"
     ]
   },
   "publishConfig": {
