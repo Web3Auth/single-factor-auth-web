@@ -107,8 +107,8 @@ function App() {
     // login with firebase
     const loginRes = await signInWithGoogle();
     // get the id token from firebase
-    const id_token = await loginRes.user.getIdToken(true);
-    setIdToken(id_token);
+    const token = await loginRes.user.getIdToken(true);
+    setIdToken(token);
 
     // trying logging in with the Single Factor Auth SDK
     try {
@@ -123,7 +123,7 @@ function App() {
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
         verifierId: sub,
-        idToken: id_token,
+        idToken: token,
       });
       if (web3authSfaprovider) {
         setProvider(web3authSfaprovider);
@@ -155,8 +155,8 @@ function App() {
       uiConsole("web3auth not initialized yet");
       return;
     }
-    const id_token = await web3authSFAuth?.authenticateUser();
-    uiConsole(id_token);
+    const token = await web3authSFAuth?.authenticateUser();
+    uiConsole(token);
   };
 
   const addChain = async () => {
