@@ -1,25 +1,34 @@
-# Using Web3Auth SFA
+# Web3Auth (`@web3auth/single-factor-auth`) React Example
 
-## Quick Start
+[![Web3Auth](https://img.shields.io/badge/Web3Auth-SDK-blue)](https://web3auth.io/docs/sdk/single-factor-auth/)
+[![Web3Auth](https://img.shields.io/badge/Web3Auth-Community-cyan)](https://community.web3auth.io)
+
+[Join our Community Portal](https://community.web3auth.io/) to get support and stay up to date with the latest news and updates.
+
+This example demonstrates how to use Web3Auth's Single Factor Authentication in a React environment.
+
+## Quickstart
+
+To use this demo app, you'll first have to build the Web3Auth Single Factor Auth package.
+
+### Build the `Web3Auth` package
 
 ```bash
-git clone https://github.com/Web3Auth/examples.git
-cd examples/single-factor-auth/sfa-react-example
-npm install
-npm run start # localhost:3000
+git clone https://github.com/Web3Auth/single-factor-auth-web.git
+cd single-factor-auth-web
+npm install && npm run build
 ```
 
-## Configure
+### Start the demo app
 
-Adding Web3Auth Plug and Play SDKs to your application is a great way to authenticate users and reconstruct their private key, and to reconstruct the key, Web3Auth SDK redirects users to a Web3Auth hosted screen (i.e. http://app.openlogin.com). This flow is great for most use cases. Still, sometimes you may want to customize the authentication flow such that you can have more control over the UI and UX of the authentication process (i.e. to avoid the redirection to openlogin hosted screens). This guide will show you how to use one such flow to authenticate users without redirecting to a Web3Auth-hosted screen.
+> Inside `single-factor-auth-web` directory.
 
-[Read the full guide to configure.](https://web3auth.io/docs/guides/one-key-flow)
-
-## Questions
-
-Ask us on our
-[Github Discussion Board](https://github.com/orgs/Web3Auth/discussions) or reach
-out to our [Discord](https://discord.gg/web3auth).
+```bash
+cd example/react-app
+npm install
+npm run start
+# localhost:3000
+```
 
 ## Important Links
 
@@ -28,4 +37,4 @@ out to our [Discord](https://discord.gg/web3auth).
 - [Guides](https://web3auth.io/docs/guides)
 - [SDK / API References](https://web3auth.io/docs/sdk)
 - [Pricing](https://web3auth.io/pricing.html)
-- [Github Discussion Board](https://github.com/orgs/Web3Auth/discussions)
+- [Community Portal](https://community.web3auth.io)
