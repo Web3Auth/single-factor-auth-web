@@ -36,7 +36,7 @@ npm install --save @web3auth/single-factor-auth
 
 Hop on to the [Web3Auth Dashboard](https://dashboard.web3auth.io/) and create a new project. Use the Client ID of the project to start your integration.
 
-![Web3Auth Dashboard](https://web3auth.io/docs/assets/images/project_plug_n_play-89c39ec42ad993107bb2485b1ce64b89.png)
+![Web3Auth Dashboard](https://user-images.githubusercontent.com/6962565/237006695-0a9e962f-fbc9-45cb-9fee-3ff19671d361.png)
 
 ### Initialize Web3Auth for your preferred blockchain
 
@@ -57,6 +57,8 @@ const web3auth = new Web3Auth({
     rpcTarget: "https://rpc.ankr.com/eth",
   },
   web3AuthNetwork: "mainnet",
+  usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK. 
+  // By default, this SDK returns CoreKitKey.
 });
 
 await web3auth.init();
@@ -68,9 +70,9 @@ Once you're done initialising, just create a button that triggers login with the
 
 ```js
 await web3auth.connect({
-  verifier: "verifier-name",
-  verifierId: "verifier-Id",
-  idToken: "JWT Token",
+  verifier: "verifier-name", // e.g. `web3auth-sfa-verifier` replace with your verifier name, and it has to be on the same network passed in init().
+  verifierId: "verifier-id-value", // e.g. `Yux1873xnibdui` or `name@email.com` replace with your verifier id(sub or email)'s value.
+  idToken: "JWT Token", // replace with your newly created unused JWT Token.
 });
 ```
 

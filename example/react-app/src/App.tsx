@@ -28,10 +28,10 @@ const clientId =
 
 const chainConfig = {
   chainNamespace: CHAIN_NAMESPACES.EIP155,
-  chainId: "0x5",
-  rpcTarget: "https://rpc.ankr.com/eth_goerli",
-  displayName: "Goerli Testnet",
-  blockExplorer: "https://goerli.etherscan.io",
+  chainId: "0x1",
+  rpcTarget: "https://rpc.ankr.com/eth",
+  displayName: "ETH Mainnet",
+  blockExplorer: "https://etherscan.io",
   ticker: "ETH",
   tickerName: "Ethereum",
 };
@@ -62,7 +62,7 @@ function App() {
           clientId, // Get your Client ID from Web3Auth Dashboard
           chainConfig,
           web3AuthNetwork: "testnet", // ["cyan", "testnet"]
-          usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
+          usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         setWeb3authSFAuth(web3authSfa);
         const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
@@ -84,7 +84,6 @@ function App() {
       const auth = getAuth(app);
       const googleProvider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, googleProvider);
-      console.log(res);
       return res;
     } catch (err) {
       console.error(err);
@@ -108,8 +107,8 @@ function App() {
     // login with firebase
     const loginRes = await signInWithGoogle();
     // get the id token from firebase
-    const idToken = await loginRes.user.getIdToken(true);
-    setIdToken(idToken);
+    const id_token = await loginRes.user.getIdToken(true);
+    setIdToken(id_token);
 
     // trying logging in with the Single Factor Auth SDK
     try {
@@ -124,11 +123,11 @@ function App() {
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
         verifierId: sub,
-        idToken,
+        idToken: id_token,
       });
       if (web3authSfaprovider) {
         setProvider(web3authSfaprovider);
-        const privKey = await web3authSfaprovider?.request({ method: "solanaSecretKey" });
+        const privKey = await web3authSfaprovider?.request({ method: "eth_private_key" });
         console.log(privKey);
       }
       setUsesSfaSDK(true);
@@ -156,8 +155,8 @@ function App() {
       uiConsole("web3auth not initialized yet");
       return;
     }
-    const idToken = await web3authSFAuth?.authenticateUser();
-    uiConsole(idToken);
+    const id_token = await web3authSFAuth?.authenticateUser();
+    uiConsole(id_token);
   };
 
   const addChain = async () => {
@@ -167,12 +166,12 @@ function App() {
     }
     const newChain = {
       chainId: "0x5",
-      displayName: "Goerli",
+      displayName: "Goerli Testnet",
       chainNamespace: CHAIN_NAMESPACES.EIP155,
-      tickerName: "Goerli",
+      tickerName: "Ethereum",
       ticker: "ETH",
       decimals: 18,
-      rpcTarget: "https://rpc.ankr.com/eth_goerli",
+      rpcTarget: "https://rpc.ankr.com/eth_goerli/",
       blockExplorer: "https://goerli.etherscan.io",
     };
     await web3authSFAuth?.addChain(newChain);
@@ -252,6 +251,15 @@ function App() {
     uiConsole(chainId);
   };
 
+  const getPrivateKey = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const privateKey = await provider?.request({ method: "eth_private_key" });
+    uiConsole(privateKey);
+  };
+
   function uiConsole(...args: any[]): void {
     const el = document.querySelector("#console>p");
     if (el) {
@@ -305,6 +313,11 @@ function App() {
         <div>
           <button onClick={sendTransaction} className="card">
             Send Transaction
+          </button>
+        </div>
+        <div>
+          <button onClick={getPrivateKey} className="card">
+            Get Private Key
           </button>
         </div>
         <div>
