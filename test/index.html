@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+  Single factor auth test
+</head>
+<body>
+  <script src="../dist/singleFactorAuth.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@5.2.0/dist/ethereumProvider.umd.min.js"></script>
+  <script>
+    (async () => {
+      console.log(SingleFactorAuth);
+      const chainConfig = {
+        chainNamespace: "eip155",
+        chainId: "0x5",
+        rpcTarget: "https://rpc.ankr.com/eth_goerli",
+        displayName: "Goerli Testnet",
+        blockExplorer: "https://goerli.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
+      };
+      singleFactorAuth = new SingleFactorAuth.default({
+        clientId: "torus",
+        chainConfig,
+        web3AuthNetwork: "testnet",
+      });
+      const provider = new EthereumProvider.EthereumPrivateKeyProvider({ config: { chainConfig } });
+      await singleFactorAuth.init(provider);
+      console.log("inited");
+    })();
+  </script>
+</body>
