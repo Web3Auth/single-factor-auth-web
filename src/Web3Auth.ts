@@ -222,6 +222,7 @@ class Web3Auth implements IWeb3Auth {
 
     await this.sessionManager.invalidateSession();
     this.currentStorage.set("sessionId", "");
+    this.privKeyProvider = null;
   }
 
   private async _getFinalPrivKey(privKey: string) {
