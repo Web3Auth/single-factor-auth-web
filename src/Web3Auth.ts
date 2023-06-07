@@ -227,16 +227,16 @@ class Web3Auth implements IWeb3Auth {
 
   private async _getFinalPrivKey(privKey: string) {
     let finalPrivKey = privKey.padStart(64, "0");
+    // get app scoped keys.
+    if (this.options.usePnPKey) {
+      const pnpPrivKey = subkey(finalPrivKey, Buffer.from(this.options.clientId, "base64"));
+      finalPrivKey = pnpPrivKey.padStart(64, "0");
+    }
     if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA) {
       if (!this.privKeyProvider.getEd25519Key) {
         throw WalletLoginError.fromCode(5000, "Private key is not valid, Missing getEd25519Key function");
       }
       finalPrivKey = this.privKeyProvider.getEd25519Key(finalPrivKey);
-    }
-    // get app scoped keys.
-    if (this.options.usePnPKey) {
-      const pnpPrivKey = subkey(finalPrivKey, Buffer.from(this.options.clientId, "base64"));
-      finalPrivKey = pnpPrivKey.padStart(64, "0");
     }
     return finalPrivKey;
   }
