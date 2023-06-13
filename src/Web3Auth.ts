@@ -1,7 +1,7 @@
 import CustomAuth from "@toruslabs/customauth";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage } from "@toruslabs/openlogin-utils";
+import { BrowserStorage, OPENLOGIN_NETWORK_TYPE } from "@toruslabs/openlogin-utils";
 import {
   CHAIN_NAMESPACES,
   ChainNamespaceType,
@@ -113,7 +113,7 @@ class Web3Auth implements IWeb3Auth {
   async authenticateUser(): Promise<UserAuthInfo> {
     const { chainNamespace, chainId } = this.chainConfig || {};
     if (!this.customAuthInstance || !this.privKeyProvider) throw new Error("Please call init first");
-    const accounts = await this.privKeyProvider.provider.request<never, string[]>({
+    const accounts = await this.privKeyProvider.provider.request<string[]>({
       method: "eth_accounts",
     });
     if (accounts && accounts.length > 0) {
@@ -137,7 +137,7 @@ class Web3Auth implements IWeb3Auth {
 
       const challenge = await signChallenge(payload, chainNamespace);
 
-      const signedMessage = await this.privKeyProvider.provider.request<[string, string], string>({
+      const signedMessage = await this.privKeyProvider.provider.request<string>({
         method: "personal_sign",
         params: [challenge, accounts[0]],
       });
@@ -149,7 +149,7 @@ class Web3Auth implements IWeb3Auth {
         "SFA",
         this.options.sessionTime,
         this.options.clientId,
-        this.options.web3AuthNetwork
+        this.options.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
       );
       saveToken(accounts[0] as string, "SFA", idToken);
       return {
