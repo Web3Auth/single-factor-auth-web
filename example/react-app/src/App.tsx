@@ -115,9 +115,8 @@ function App() {
         uiConsole("Web3Auth Single Factor Auth SDK not initialized yet");
         return;
       }
-      
       // get sub value from firebase id token
-      const { sub } = parseToken(idToken);
+      const { sub } = parseToken(token);
 
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,

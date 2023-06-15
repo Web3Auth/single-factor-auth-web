@@ -56,7 +56,7 @@ class Web3Auth implements IWeb3Auth {
       throw WalletInitializationError.invalidParams("provider is required");
     }
 
-    if (!provider.chainConfig || !provider.chainConfig.chainNamespace || !provider.chainConfig.chainId) {
+    if (!provider.currentChainConfig || !provider.currentChainConfig.chainNamespace || !provider.currentChainConfig.chainId) {
       throw WalletInitializationError.invalidParams("provider should have chainConfig and should be intiliazed with chainId and chainNamespace");
     }
 
@@ -70,8 +70,8 @@ class Web3Auth implements IWeb3Auth {
     });
 
     this.privKeyProvider = provider;
-    this.chainConfig = this.privKeyProvider.chainConfig;
-    this.currentChainNamespace = this.privKeyProvider.chainConfig.chainNamespace;
+    this.chainConfig = this.privKeyProvider.currentChainConfig;
+    this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
 
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
