@@ -29,7 +29,6 @@ describe("torus onekey", function () {
       };
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
-        chainConfig,
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
       });
       const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
@@ -79,7 +78,6 @@ describe("torus onekey", function () {
       };
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
-        chainConfig,
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
       });
       const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
@@ -119,14 +117,18 @@ describe("torus onekey", function () {
   describe("Common provider", function () {
     beforeEach("one time execution before all tests", async function () {
       const chainConfig = {
-        chainNamespace: CHAIN_NAMESPACES.OTHER,
+        chainId: "0x5",
+        rpcTarget: "https://rpc.ankr.com/eth_goerli",
+        displayName: "Goerli Testnet",
+        blockExplorer: "https://goerli.etherscan.io",
+        ticker: "ETH",
+        tickerName: "Ethereum",
       };
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
-        chainConfig,
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
       });
-      const provider = new CommonPrivateKeyProvider();
+      const provider = new CommonPrivateKeyProvider({ config: { chainConfig } });
       await singleFactorAuth.init(provider);
     });
 
