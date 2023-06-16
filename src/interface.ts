@@ -35,13 +35,6 @@ export interface Web3AuthOptions {
    */
   clientId: string;
   /**
-   * custom chain configuration for chainNamespace
-   *
-   * @defaultValue mainnet config of provided chainNamespace
-   */
-  chainConfig: Partial<CustomChainConfig> & Pick<CustomChainConfig, "chainNamespace">;
-
-  /**
    * Web3Auth Network to use for login
    * @defaultValue mainnet
    */

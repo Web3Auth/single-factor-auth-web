@@ -60,7 +60,6 @@ function App() {
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
-          chainConfig,
           web3AuthNetwork: "testnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
@@ -116,9 +115,8 @@ function App() {
         uiConsole("Web3Auth Single Factor Auth SDK not initialized yet");
         return;
       }
-      
       // get sub value from firebase id token
-      const { sub } = parseToken(idToken);
+      const { sub } = parseToken(token);
 
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,

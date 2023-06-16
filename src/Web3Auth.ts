@@ -25,7 +25,7 @@ class Web3Auth implements IWeb3Auth {
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
-  private chainConfig: CustomChainConfig | null = null;
+  private chainConfig: Partial<CustomChainConfig> | null = null;
 
   private currentChainNamespace: ChainNamespaceType;
 
@@ -36,34 +36,8 @@ class Web3Auth implements IWeb3Auth {
   private readonly storageKey = "sfa_store";
 
   constructor(options: Web3AuthOptions) {
-    if (!options?.chainConfig?.chainNamespace) {
-      throw WalletInitializationError.invalidParams("Please provide a valid chainNamespace in chainConfig");
-    }
     if (!options.clientId) throw WalletInitializationError.invalidParams("Please provide a valid clientId in constructor");
 
-    if (options.chainConfig?.chainNamespace !== CHAIN_NAMESPACES.OTHER) {
-      const { chainId, rpcTarget } = options?.chainConfig || {};
-      if (!chainId) {
-        throw WalletInitializationError.invalidProviderConfigError("Please provide chainId inside chainConfig");
-      }
-      if (!rpcTarget) {
-        throw WalletInitializationError.invalidProviderConfigError("Please provide rpcTarget inside chainConfig");
-      }
-
-      this.chainConfig = {
-        displayName: "",
-        blockExplorer: "",
-        ticker: "",
-        tickerName: "",
-        chainId: options.chainConfig.chainId as string,
-        rpcTarget: options.chainConfig.rpcTarget as string,
-        ...(options?.chainConfig || {}),
-        chainNamespace: options.chainConfig.chainNamespace as ChainNamespaceType,
-        decimals: 18,
-      };
-    }
-
-    this.currentChainNamespace = options.chainConfig.chainNamespace;
     this.options = {
       ...options,
       web3AuthNetwork: options.web3AuthNetwork || "mainnet",
@@ -82,6 +56,10 @@ class Web3Auth implements IWeb3Auth {
       throw WalletInitializationError.invalidParams("provider is required");
     }
 
+    if (!provider.currentChainConfig || !provider.currentChainConfig.chainNamespace || !provider.currentChainConfig.chainId) {
+      throw WalletInitializationError.invalidParams("provider should have chainConfig and should be intiliazed with chainId and chainNamespace");
+    }
+
     this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
     this.customAuthInstance = new CustomAuth({
       web3AuthClientId: this.options.clientId,
@@ -92,6 +70,8 @@ class Web3Auth implements IWeb3Auth {
     });
 
     this.privKeyProvider = provider;
+    this.chainConfig = this.privKeyProvider.currentChainConfig;
+    this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
 
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
