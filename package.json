@@ -1,6 +1,6 @@
 {
   "name": "@web3auth/single-factor-auth",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "description": "Multi chain wallet aggregator silent MFA for web3Auth",
   "keywords": [
     "web3Auth/single-factor-auth",
