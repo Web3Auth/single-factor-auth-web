@@ -47,21 +47,25 @@ This package can only be used with verifiers created on developer dashboard.
 
 ```js
 import { Web3Auth } from "@web3auth/single-factor-auth";
+import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
 //Initialize within your constructor
 const web3auth = new Web3Auth({
   clientId: "", // Get your Client ID from Web3Auth Dashboard
-  chainConfig: {
-    chainNamespace: "eip155",
-    chainId: "0x1",
-    rpcTarget: "https://rpc.ankr.com/eth",
-  },
   web3AuthNetwork: "mainnet",
   usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK. 
   // By default, this SDK returns CoreKitKey.
 });
 
-await web3auth.init();
+const chainConfig: {
+  chainNamespace: "eip155",
+  chainId: "0x1",
+  rpcTarget: "https://rpc.ankr.com/eth",
+};
+
+const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
+
+await web3auth.init(provider);
 ```
 
 ### Login your User
