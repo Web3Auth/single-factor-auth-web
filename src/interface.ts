@@ -1,7 +1,11 @@
-import type { TORUS_LEGACY_NETWORK_TYPE } from "@toruslabs/constants";
-import type { TorusSubVerifierInfo } from "@toruslabs/customauth";
+import { TORUS_LEGACY_NETWORK, TORUS_LEGACY_NETWORK_TYPE } from "@toruslabs/constants";
 import { CustomChainConfig, SafeEventEmitterProvider } from "@web3auth/base";
 import type { IBaseProvider } from "@web3auth/base-provider";
+
+export interface TorusSubVerifierInfo {
+  verifier: string;
+  idToken: string;
+}
 
 export type InitParams = { network: TORUS_LEGACY_NETWORK_TYPE };
 
@@ -19,6 +23,7 @@ export type LoginParams = {
 export type UserAuthInfo = { idToken: string };
 
 export interface IWeb3Auth {
+  sessionId: string | null;
   provider: SafeEventEmitterProvider | null;
   init(provider: PrivateKeyProvider): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
@@ -75,6 +80,14 @@ export interface Web3AuthOptions {
   storageServerUrl?: string;
 }
 
+export type AggregateVerifierParams = {
+  verify_params: { verifier_id: string; idtoken: string }[];
+  sub_verifier_ids: string[];
+  verifier_id: string;
+};
+
 export interface SessionData {
   privKey?: string;
 }
+
+export { TORUS_LEGACY_NETWORK, TORUS_LEGACY_NETWORK_TYPE };

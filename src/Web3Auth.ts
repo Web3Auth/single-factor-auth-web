@@ -1,7 +1,8 @@
-import CustomAuth from "@toruslabs/customauth";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
 import { BrowserStorage, OPENLOGIN_NETWORK_TYPE } from "@toruslabs/openlogin-utils";
+import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
   CHAIN_NAMESPACES,
   ChainNamespaceType,
@@ -16,12 +17,12 @@ import {
   WalletLoginError,
 } from "@web3auth/base";
 
-import { IWeb3Auth, LoginParams, PrivateKeyProvider, SessionData, UserAuthInfo, Web3AuthOptions } from "./interface";
+import { AggregateVerifierParams, IWeb3Auth, LoginParams, PrivateKeyProvider, SessionData, UserAuthInfo, Web3AuthOptions } from "./interface";
 
 class Web3Auth implements IWeb3Auth {
   readonly options: Web3AuthOptions;
 
-  public customAuthInstance: CustomAuth | null = null;
+  public authInstance: Torus | null = null;
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
@@ -47,6 +48,10 @@ class Web3Auth implements IWeb3Auth {
     };
   }
 
+  get sessionId(): string | null {
+    return (this.sessionManager && this.sessionManager.sessionKey) || null;
+  }
+
   get provider(): SafeEventEmitterProvider | null {
     return this.privKeyProvider?.provider || null;
   }
@@ -61,12 +66,10 @@ class Web3Auth implements IWeb3Auth {
     }
 
     this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
-    this.customAuthInstance = new CustomAuth({
-      web3AuthClientId: this.options.clientId,
+    this.authInstance = new Torus({
+      clientId: this.options.clientId,
       enableOneKey: true,
       network: this.options.web3AuthNetwork,
-      baseUrl: typeof window !== "undefined" ? window.location.origin : "https://web3auth.com",
-      enableLogging: this.options.enableLogging,
     });
 
     this.privKeyProvider = provider;
@@ -92,7 +95,7 @@ class Web3Auth implements IWeb3Auth {
 
   async authenticateUser(): Promise<UserAuthInfo> {
     const { chainNamespace, chainId } = this.chainConfig || {};
-    if (!this.customAuthInstance || !this.privKeyProvider) throw new Error("Please call init first");
+    if (!this.authInstance || !this.privKeyProvider) throw new Error("Please call init first");
     const accounts = await this.privKeyProvider.provider.request<string[]>({
       method: "eth_accounts",
     });
@@ -152,18 +155,20 @@ class Web3Auth implements IWeb3Auth {
    * @returns provider to connect
    */
   async connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null> {
-    if (!this.customAuthInstance || !this.privKeyProvider || !this.currentStorage || !this.sessionManager)
+    if (!this.authInstance || !this.privKeyProvider || !this.currentStorage || !this.sessionManager)
       throw WalletInitializationError.notInstalled("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     const verifierDetails = { verifier, verifierId };
 
-    const { torusNodeEndpoints, torusNodePub } = await this.customAuthInstance.nodeDetailManager.getNodeDetails(verifierDetails);
+    const nodeDetailManager = new NodeDetailManager({ network: this.options.web3AuthNetwork });
+    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await nodeDetailManager.getNodeDetails(verifierDetails);
+
     if (loginParams.serverTimeOffset) {
-      this.customAuthInstance.torus.serverTimeOffset = loginParams.serverTimeOffset;
+      this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
     }
     // does the key assign
-    const pubDetails = await this.customAuthInstance.torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
+    const pubDetails = await this.authInstance.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
 
     if (pubDetails.upgraded) {
       throw WalletLoginError.mfaEnabled();
@@ -171,18 +176,37 @@ class Web3Auth implements IWeb3Auth {
 
     if (pubDetails.typeOfUser === "v1") {
       // This shouldn't happen for this sdk.
-      await this.customAuthInstance.torus.getOrSetNonce(pubDetails.X, pubDetails.Y);
+      await this.authInstance.getOrSetNonce(pubDetails.X, pubDetails.Y);
     }
 
-    let privKey = "";
+    let finalIdToken = idToken;
+    let finalVerifierParams = { verifier_id: verifierId };
     if (subVerifierInfoArray && subVerifierInfoArray?.length > 0) {
-      const torusResponse = await this.customAuthInstance.getAggregateTorusKey(verifier, verifierId, subVerifierInfoArray);
-      privKey = torusResponse.privateKey;
-    } else {
-      const torusResponse = await this.customAuthInstance.getTorusKey(verifier, verifierId, { verifier_id: verifierId }, idToken);
-      privKey = torusResponse.privateKey;
+      const aggregateVerifierParams: AggregateVerifierParams = { verify_params: [], sub_verifier_ids: [], verifier_id: "" };
+      const aggregateIdTokenSeeds = [];
+      for (let index = 0; index < subVerifierInfoArray.length; index += 1) {
+        const userInfo = subVerifierInfoArray[index];
+        aggregateVerifierParams.verify_params.push({ verifier_id: verifierId, idtoken: userInfo.idToken });
+        aggregateVerifierParams.sub_verifier_ids.push(userInfo.verifier);
+        aggregateIdTokenSeeds.push(userInfo.idToken);
+      }
+      aggregateIdTokenSeeds.sort();
+
+      finalIdToken = keccak256(Buffer.from(aggregateIdTokenSeeds.join(String.fromCharCode(29)), "utf8")).slice(2);
+
+      aggregateVerifierParams.verifier_id = verifierId;
+      finalVerifierParams = aggregateVerifierParams;
     }
 
+    const retrieveSharesResponse = await this.authInstance.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      verifier,
+      finalVerifierParams,
+      finalIdToken
+    );
+
+    const { privKey } = retrieveSharesResponse;
     if (!privKey) throw WalletLoginError.fromCode(5000, "Unable to get private key from torus nodes");
 
     const finalPrivKey = await this._getFinalPrivKey(privKey);
