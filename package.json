@@ -41,7 +41,7 @@
     "@toruslabs/openlogin-session-manager": "^1.1.0",
     "@toruslabs/openlogin-subkey": "^4.2.0",
     "@toruslabs/openlogin-utils": "^4.5.1",
-    "@toruslabs/torus.js": "^8.0.0",
+    "@toruslabs/torus.js": "^8.0.1",
     "@web3auth/base": "^6.1.1"
   },
   "devDependencies": {

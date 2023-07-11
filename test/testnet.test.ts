@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
@@ -44,7 +43,7 @@ describe("torus onekey", function () {
         verifierId: TORUS_TEST_EMAIL,
       });
       const privKey = await provider?.request({ method: "eth_private_key" });
-      expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+      expect(privKey).to.equal("c5f8d19d08b369e04d3ffc4e1e9c8e9f5f0bfde3c2c1f06d1689fd6558fe813e");
     });
 
     it("should get aggregate torus key", async function () {
@@ -93,7 +92,7 @@ describe("torus onekey", function () {
         verifierId: TORUS_TEST_EMAIL,
       });
       const privKey = await provider?.request({ method: "solanaSecretKey" });
-      expect(privKey).to.equal("pyqTNUjYGccdvJDEmLP9aXxurnNTrQsMRupGxC7aiHcTbA7RsUV2zvQX5FBnURWEv5PBsjt3pwR3Et7pGE9BoUB");
+      expect(privKey).to.equal("4xa2WWTyKpsZ3bKVzUUBEnfkdtBnn8S6fo5tD2DhDvUnnPsYv8GgRzPxsF1QbP9jJkHfLxfYRZJ8bv9ux9WdmxkF");
     });
 
     it("should get aggregate torus key", async function () {
@@ -141,7 +140,7 @@ describe("torus onekey", function () {
         verifierId: TORUS_TEST_EMAIL,
       });
       const privKey = await provider?.request({ method: "private_key" });
-      expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+      expect(privKey).to.equal("c5f8d19d08b369e04d3ffc4e1e9c8e9f5f0bfde3c2c1f06d1689fd6558fe813e");
     });
 
     it("should get aggregate torus key", async function () {
