@@ -85,6 +85,9 @@ class Web3Auth implements IWeb3Auth {
 
     // if sessionId exists in storage, then try to rehydrate session.
     if (sessionId) {
+      // we are doing this to make sure sessionKey is set
+      // before we call authorizeSession in both cjs and esm bundles.
+      this.sessionManager.sessionKey = sessionId;
       const data = await this.sessionManager.authorizeSession().catch(() => {});
       if (data && data.privKey) {
         const finalPrivKey = await this._getFinalPrivKey(data.privKey);
