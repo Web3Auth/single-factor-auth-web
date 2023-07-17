@@ -116,8 +116,8 @@ class Web3Auth implements IWeb3Auth {
       }
 
       const payload = {
-        domain: typeof window !== "undefined" ? window.location.origin : "ReactNative",
-        uri: typeof window !== "undefined" ? window.location.href : "ReactNative",
+        domain: typeof window.location !== "undefined" ? window.location.origin : "reactnative",
+        uri: typeof window.location !== "undefined" ? window.location.href : "com://reactnative",
         address: accounts[0],
         chainId: parseInt(chainId as string, 16),
         version: "1",
