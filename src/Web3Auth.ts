@@ -22,6 +22,8 @@ import { AggregateVerifierParams, IWeb3Auth, LoginParams, PrivateKeyProvider, Se
 class Web3Auth implements IWeb3Auth {
   readonly options: Web3AuthOptions;
 
+  public ready = false;
+
   public authInstance: Torus | null = null;
 
   private privKeyProvider: PrivateKeyProvider | null = null;
@@ -94,9 +96,11 @@ class Web3Auth implements IWeb3Auth {
         await this.privKeyProvider.setupProvider(finalPrivKey);
       }
     }
+    this.ready = true;
   }
 
   async authenticateUser(): Promise<UserAuthInfo> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     const { chainNamespace, chainId } = this.chainConfig || {};
     if (!this.authInstance || !this.privKeyProvider) throw new Error("Please call init first");
     const accounts = await this.privKeyProvider.provider.request<string[]>({
@@ -112,8 +116,8 @@ class Web3Auth implements IWeb3Auth {
       }
 
       const payload = {
-        domain: window.location.origin,
-        uri: window.location.href,
+        domain: typeof window !== "undefined" ? window.location.origin : "ReactNative",
+        uri: typeof window !== "undefined" ? window.location.href : "ReactNative",
         address: accounts[0],
         chainId: parseInt(chainId as string, 16),
         version: "1",
@@ -145,10 +149,12 @@ class Web3Auth implements IWeb3Auth {
   }
 
   async addChain(chainConfig: CustomChainConfig): Promise<void> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.addChain(chainConfig);
   }
 
   switchChain(params: { chainId: string }): Promise<void> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.switchChain(params);
   }
 
@@ -158,8 +164,7 @@ class Web3Auth implements IWeb3Auth {
    * @returns provider to connect
    */
   async connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null> {
-    if (!this.authInstance || !this.privKeyProvider || !this.currentStorage || !this.sessionManager)
-      throw WalletInitializationError.notInstalled("Please call init first.");
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     const verifierDetails = { verifier, verifierId };
@@ -224,12 +229,14 @@ class Web3Auth implements IWeb3Auth {
   }
 
   async logout(): Promise<void> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     const sessionId = this.currentStorage.get<string>("sessionId");
     if (!sessionId) throw WalletLoginError.fromCode(5000, "User not logged in");
 
     await this.sessionManager.invalidateSession();
     this.currentStorage.set("sessionId", "");
     this.privKeyProvider = null;
+    this.ready = false;
   }
 
   private async _getFinalPrivKey(privKey: string) {
