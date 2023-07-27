@@ -9,7 +9,7 @@ Web3Auth Single Factor Auth is the SDK that gives you the ability to start with 
 
 ## 📖 Documentation
 
-Checkout the official [Web3Auth Documentation](https://web3auth.io/docs/sdk/single-factor-auth/) to get started.
+Checkout the official [Web3Auth Documentation](https://web3auth.io/docs/sdk/core-kit/sfa) to get started.
 
 ## 💡 Features
 
@@ -40,10 +40,10 @@ Hop on to the [Web3Auth Dashboard](https://dashboard.web3auth.io/) and create a 
 
 ### Initialize Web3Auth for your preferred blockchain
 
-Web3Auth needs to initialise as soon as your app loads up to enable the user to log in. Preferably done within a constructor, initialisation is the step where you can pass on all the configurations for Web3Auth you want. A simple integration for Ethereum blockchain will look like this:
+Web3Auth needs to initialize as soon as your app loads up to enable the user to log in. Preferably done within a constructor, initialization is the step where you can pass on all the configurations for Web3Auth you want. A simple integration for Ethereum blockchain will look like this:
 
 **Note**
-This package can only be used with verifiers created on developer dashboard.
+This package can only be used with verifiers created on the developer dashboard.
 
 ```js
 import { Web3Auth } from "@web3auth/single-factor-auth";
@@ -82,7 +82,7 @@ await web3auth.connect({
 
 ## 🩹 Examples
 
-Checkout the examples for your preferred blockchain and platform in our [examples repository](https://github.com/Web3Auth/web3auth-core-kit-examples/tree/main/single-factor-auth)
+Checkout the examples for your preferred blockchain and platform in our [examples repository](https://github.com/Web3Auth/web3auth-core-kit-examples/tree/main/single-factor-auth-web)
 
 ## 🌐 Demo
 
