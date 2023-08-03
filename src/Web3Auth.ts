@@ -26,6 +26,8 @@ class Web3Auth implements IWeb3Auth {
 
   public authInstance: Torus | null = null;
 
+  public nodeDetailManagerInstance: NodeDetailManager | null = null;
+
   private privKeyProvider: PrivateKeyProvider | null = null;
 
   private chainConfig: Partial<CustomChainConfig> | null = null;
@@ -68,6 +70,7 @@ class Web3Auth implements IWeb3Auth {
     }
 
     this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
+    this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.options.web3AuthNetwork });
     this.authInstance = new Torus({
       clientId: this.options.clientId,
       enableOneKey: true,
@@ -102,7 +105,7 @@ class Web3Auth implements IWeb3Auth {
   async authenticateUser(): Promise<UserAuthInfo> {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     const { chainNamespace, chainId } = this.chainConfig || {};
-    if (!this.authInstance || !this.privKeyProvider) throw new Error("Please call init first");
+    if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw new Error("Please call init first");
     const accounts = await this.privKeyProvider.provider.request<string[]>({
       method: "eth_accounts",
     });
@@ -158,6 +161,53 @@ class Web3Auth implements IWeb3Auth {
     return this.privKeyProvider.switchChain(params);
   }
 
+  async getPostboxKey(loginParams: LoginParams): Promise<string> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
+    const verifierDetails = { verifier, verifierId };
+
+    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+
+    if (loginParams.serverTimeOffset) {
+      this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
+    }
+    // Does the key assign
+    await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
+
+    let finalIdToken = idToken;
+    let finalVerifierParams = { verifier_id: verifierId };
+    if (subVerifierInfoArray && subVerifierInfoArray?.length > 0) {
+      const aggregateVerifierParams: AggregateVerifierParams = { verify_params: [], sub_verifier_ids: [], verifier_id: "" };
+      const aggregateIdTokenSeeds = [];
+      for (let index = 0; index < subVerifierInfoArray.length; index += 1) {
+        const userInfo = subVerifierInfoArray[index];
+        aggregateVerifierParams.verify_params.push({ verifier_id: verifierId, idtoken: userInfo.idToken });
+        aggregateVerifierParams.sub_verifier_ids.push(userInfo.verifier);
+        aggregateIdTokenSeeds.push(userInfo.idToken);
+      }
+      aggregateIdTokenSeeds.sort();
+
+      finalIdToken = keccak256(Buffer.from(aggregateIdTokenSeeds.join(String.fromCharCode(29)), "utf8")).slice(2);
+
+      aggregateVerifierParams.verifier_id = verifierId;
+      finalVerifierParams = aggregateVerifierParams;
+    }
+
+    const retrieveSharesResponse = await this.authInstance.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      verifier,
+      finalVerifierParams,
+      finalIdToken
+    );
+
+    const postboxKey = this.authInstance.getPostboxKeyFrom1OutOf1(
+      retrieveSharesResponse.privKey,
+      retrieveSharesResponse.metadataNonce.toString(16, 64)
+    );
+    return postboxKey.padStart(64, "0");
+  }
+
   /**
    * Use this function only with verifiers created on developer dashboard (https://dashboard.web3auth.io)
    * @param loginParams - Params used to login
@@ -169,8 +219,7 @@ class Web3Auth implements IWeb3Auth {
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     const verifierDetails = { verifier, verifierId };
 
-    const nodeDetailManager = new NodeDetailManager({ network: this.options.web3AuthNetwork });
-    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await nodeDetailManager.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
 
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
