@@ -6,7 +6,7 @@ register({
   project: path.resolve(".", "tsconfig.json"),
   require: ["tsconfig-paths/register"],
   transpileOnly: true,
-  compilerOptions: { module: "commonjs" },
+  compilerOptions: { module: "es2020" },
 });
 
 Register({
