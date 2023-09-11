@@ -53,7 +53,7 @@ class Web3Auth implements IWeb3Auth {
   }
 
   get sessionId(): string | null {
-    return (this.sessionManager && this.sessionManager.sessionKey) || null;
+    return (this.sessionManager && this.sessionManager.sessionId) || null;
   }
 
   get provider(): SafeEventEmitterProvider | null {
@@ -92,7 +92,7 @@ class Web3Auth implements IWeb3Auth {
     if (sessionId) {
       // we are doing this to make sure sessionKey is set
       // before we call authorizeSession in both cjs and esm bundles.
-      this.sessionManager.sessionKey = sessionId;
+      this.sessionManager.sessionId = sessionId;
       const data = await this.sessionManager.authorizeSession().catch(() => {});
       if (data && data.privKey) {
         const finalPrivKey = await this._getFinalPrivKey(data.privKey);
@@ -106,7 +106,7 @@ class Web3Auth implements IWeb3Auth {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     const { chainNamespace, chainId } = this.chainConfig || {};
     if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw new Error("Please call init first");
-    const accounts = await this.privKeyProvider.provider.request<string[]>({
+    const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
       method: "eth_accounts",
     });
     if (accounts && accounts.length > 0) {
@@ -130,7 +130,7 @@ class Web3Auth implements IWeb3Auth {
 
       const challenge = await signChallenge(payload, chainNamespace);
 
-      const signedMessage = await this.privKeyProvider.provider.request<string>({
+      const signedMessage = await this.privKeyProvider.provider.request<string[], string>({
         method: "personal_sign",
         params: [challenge, accounts[0]],
       });
@@ -201,10 +201,7 @@ class Web3Auth implements IWeb3Auth {
       finalIdToken
     );
 
-    const postboxKey = this.authInstance.getPostboxKeyFrom1OutOf1(
-      retrieveSharesResponse.privKey,
-      retrieveSharesResponse.metadataNonce.toString(16, 64)
-    );
+    const postboxKey = Torus.getPostboxKey(retrieveSharesResponse);
     return postboxKey.padStart(64, "0");
   }
 
@@ -225,15 +222,10 @@ class Web3Auth implements IWeb3Auth {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
     }
     // does the key assign
-    const pubDetails = await this.authInstance.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
+    const pubDetails = await this.authInstance.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
 
-    if (pubDetails.upgraded) {
+    if (pubDetails.metadata.upgraded) {
       throw WalletLoginError.mfaEnabled();
-    }
-
-    if (pubDetails.typeOfUser === "v1") {
-      // This shouldn't happen for this sdk.
-      await this.authInstance.getOrSetNonce(pubDetails.X, pubDetails.Y);
     }
 
     let finalIdToken = idToken;
@@ -262,15 +254,15 @@ class Web3Auth implements IWeb3Auth {
       finalVerifierParams,
       finalIdToken
     );
-
-    const { privKey } = retrieveSharesResponse;
+    const { finalKeyData, oAuthKeyData } = retrieveSharesResponse;
+    const privKey = finalKeyData.privKey || oAuthKeyData.privKey;
     if (!privKey) throw WalletLoginError.fromCode(5000, "Unable to get private key from torus nodes");
 
     const finalPrivKey = await this._getFinalPrivKey(privKey);
     await this.privKeyProvider.setupProvider(finalPrivKey);
 
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
-    this.sessionManager.sessionKey = sessionId;
+    this.sessionManager.sessionId = sessionId;
     // we are using the original private key so that we can retrieve other keys later on
     await this.sessionManager.createSession({ privKey });
     this.currentStorage.set("sessionId", sessionId);
@@ -284,7 +276,7 @@ class Web3Auth implements IWeb3Auth {
 
     await this.sessionManager.invalidateSession();
     this.currentStorage.set("sessionId", "");
-    this.privKeyProvider = null;
+    this.privKeyProvider.updateProviderEngineProxy(null);
     this.ready = false;
   }
 
