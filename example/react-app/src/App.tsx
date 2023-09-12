@@ -60,7 +60,7 @@ function App() {
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
-          web3AuthNetwork: "testnet", // ["cyan", "testnet"]
+          web3AuthNetwork: "sapphire_devnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         setWeb3authSFAuth(web3authSfa);
@@ -188,13 +188,15 @@ function App() {
   const logout = async () => {
     if (usesSfaSDK) {
       if (!web3authSFAuth) {
-        throw new Error('web3auth sf auth not initialized.');
+        throw new Error('web3auth sfa auth not initialized.');
       }
       console.log(
         "You are directly using Single Factor Auth SDK to login the user, hence the Web3Auth logout function won't work for you. You can logout the user directly from your login provider, or just clear the provider object."
       );
       setProvider(null);
-      web3authSFAuth.logout();
+      await web3authSFAuth.logout();
+      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
+      await web3authSFAuth.init(provider);
       return;
     }
   };

@@ -1,13 +1,12 @@
-import { TORUS_LEGACY_NETWORK, TORUS_LEGACY_NETWORK_TYPE } from "@toruslabs/constants";
-import { CustomChainConfig, SafeEventEmitterProvider } from "@web3auth/base";
-import type { IBaseProvider } from "@web3auth/base-provider";
+import { TORUS_LEGACY_NETWORK, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
+import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
 export interface TorusSubVerifierInfo {
   verifier: string;
   idToken: string;
 }
 
-export type InitParams = { network: TORUS_LEGACY_NETWORK_TYPE };
+export type InitParams = { network: TORUS_NETWORK_TYPE };
 
 export type PrivateKeyProvider = IBaseProvider<string> & { getEd25519Key?: (privKey: string) => string };
 
@@ -43,7 +42,7 @@ export interface Web3AuthOptions {
    * Web3Auth Network to use for login
    * @defaultValue mainnet
    */
-  web3AuthNetwork?: TORUS_LEGACY_NETWORK_TYPE;
+  web3AuthNetwork?: TORUS_NETWORK_TYPE;
 
   /**
    * setting to true will enable logs
@@ -90,4 +89,4 @@ export interface SessionData {
   privKey?: string;
 }
 
-export { TORUS_LEGACY_NETWORK, TORUS_LEGACY_NETWORK_TYPE };
+export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
