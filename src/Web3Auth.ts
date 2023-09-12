@@ -289,7 +289,7 @@ class Web3Auth implements IWeb3Auth {
     }
     if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA) {
       if (!this.privKeyProvider.getEd25519Key) {
-        throw WalletLoginError.fromCode(5000, "Private key is not valid, Missing getEd25519Key function");
+        throw WalletLoginError.fromCode(5000, "Private key provider is not valid, Missing getEd25519Key function");
       }
       finalPrivKey = this.privKeyProvider.getEd25519Key(finalPrivKey);
     }
