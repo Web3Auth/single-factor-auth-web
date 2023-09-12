@@ -53,7 +53,6 @@
     "@types/jsonwebtoken": "^9.0.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^6.6.0",
     "@web3auth/base-provider": "^7.0.1",
     "@web3auth/ethereum-provider": "7.0.1",
     "@web3auth/solana-provider": "7.0.1",
