@@ -1,10 +1,10 @@
-import type { SafeEventEmitterProvider } from "@web3auth/base";
 import Web3 from "web3";
+import { IProvider } from "@web3auth/base";
 
 export default class EthereumRpc {
-  private provider: SafeEventEmitterProvider;
+  private provider: IProvider;
 
-  constructor(provider: SafeEventEmitterProvider) {
+  constructor(provider: IProvider) {
     this.provider = provider;
   }
   async getAccounts(): Promise<string[]> {
@@ -14,6 +14,17 @@ export default class EthereumRpc {
       return accounts;
     } catch (error: unknown) {
       return error as string[];
+    }
+  }
+
+  async getChainId(): Promise<any> {
+    try {
+      const web3Provider = new Web3(this.provider);
+      // Get the connected Chain's ID
+      
+      return (await web3Provider.eth.net.getId()).toString(16);
+    } catch (error) {
+      return error;
     }
   }
 

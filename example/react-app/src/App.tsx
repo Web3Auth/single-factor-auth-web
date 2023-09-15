@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
 import { Web3Auth } from "@web3auth/single-factor-auth";
-import { CHAIN_NAMESPACES, SafeEventEmitterProvider } from "@web3auth/base";
+import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
 // RPC libraries for blockchain calls
-// import RPC from "./evm.web3";
-import RPC from "./evm.ethers";
+import RPC from "./evm.web3";
+// import RPC from "./evm.ethers";
 
 // Firebase libraries for custom authentication
 import { initializeApp } from "firebase/app";
@@ -20,6 +20,7 @@ import {
 
 import Loading from "./Loading";
 import "./App.css";
+import { IProvider } from "@web3auth/base";
 
 const verifier = "web3auth-firebase-examples";
 
@@ -49,7 +50,7 @@ const firebaseConfig = {
 function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [usesSfaSDK, setUsesSfaSDK] = useState(false);
-  const [provider, setProvider] = useState<SafeEventEmitterProvider | null>(null);
+  const [provider, setProvider] = useState<IProvider | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const app = initializeApp(firebaseConfig);

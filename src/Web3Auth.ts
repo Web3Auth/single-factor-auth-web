@@ -9,6 +9,7 @@ import {
   checkIfTokenIsExpired,
   CustomChainConfig,
   getSavedToken,
+  IProvider,
   SafeEventEmitterProvider,
   saveToken,
   signChallenge,
@@ -56,8 +57,8 @@ class Web3Auth implements IWeb3Auth {
     return (this.sessionManager && this.sessionManager.sessionId) || null;
   }
 
-  get provider(): SafeEventEmitterProvider | null {
-    return this.privKeyProvider?.provider || null;
+  get provider(): IProvider | null {
+    return this.privKeyProvider || null;
   }
 
   async init(provider: PrivateKeyProvider): Promise<void> {
@@ -210,7 +211,7 @@ class Web3Auth implements IWeb3Auth {
    * @param loginParams - Params used to login
    * @returns provider to connect
    */
-  async connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null> {
+  async connect(loginParams: LoginParams): Promise<IProvider | null> {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
