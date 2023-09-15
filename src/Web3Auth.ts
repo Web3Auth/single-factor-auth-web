@@ -10,7 +10,6 @@ import {
   CustomChainConfig,
   getSavedToken,
   IProvider,
-  SafeEventEmitterProvider,
   saveToken,
   signChallenge,
   verifySignedChallenge,
