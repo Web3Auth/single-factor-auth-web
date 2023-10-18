@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
-import { Web3Auth } from "@web3auth/single-factor-auth";
+import { Web3Auth, ADAPTER_EVENTS } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
@@ -51,7 +51,7 @@ function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [usesSfaSDK, setUsesSfaSDK] = useState(false);
   const [provider, setProvider] = useState<IProvider | null>(null);
-  const [idToken, setIdToken] = useState<string | null>(null);
+  // const [idToken, setIdToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const app = initializeApp(firebaseConfig);
 
@@ -64,13 +64,19 @@ function App() {
           web3AuthNetwork: "sapphire_devnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
+        web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
+          console.log('sfa:connected', data);
+          console.log("sfa:state", web3authSfa?.state)
+          setProvider(web3authSfa.provider)
+          setUsesSfaSDK(true);
+        })
+        web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
+          console.log('sfa:disconnected');
+          setProvider(null)
+        })
         setWeb3authSFAuth(web3authSfa);
         const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
         await web3authSfa.init(provider);
-        if (web3authSfa.provider) {
-          setProvider(web3authSfa.provider)
-          setUsesSfaSDK(true);
-        }
       } catch (error) {
         console.error(error);
       }
@@ -108,7 +114,7 @@ function App() {
     const loginRes = await signInWithGoogle();
     // get the id token from firebase
     const token = await loginRes.user.getIdToken(true);
-    setIdToken(token);
+    // setIdToken(token);
 
     // trying logging in with the Single Factor Auth SDK
     try {
@@ -140,10 +146,10 @@ function App() {
   };
 
   const getUserInfo = async () => {
-    if (usesSfaSDK) {
+    if (web3authSFAuth && web3authSFAuth?.connected) {
       uiConsole(
-        "You are directly using Single Factor Auth SDK to login the user, hence the Web3Auth <code>getUserInfo</code> function won't work for you. Get the user details directly from id token.",
-        parseToken(idToken)
+        "user info",
+        await web3authSFAuth?.getUserInfo(),
       );
       return;
     }
@@ -194,7 +200,6 @@ function App() {
       console.log(
         "You are directly using Single Factor Auth SDK to login the user, hence the Web3Auth logout function won't work for you. You can logout the user directly from your login provider, or just clear the provider object."
       );
-      setProvider(null);
       await web3authSFAuth.logout();
       const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
       await web3authSFAuth.init(provider);

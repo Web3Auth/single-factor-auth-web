@@ -21,16 +21,6 @@ export type LoginParams = {
 
 export type UserAuthInfo = { idToken: string };
 
-export interface IWeb3Auth {
-  sessionId: string | null;
-  provider: SafeEventEmitterProvider | null;
-  init(provider: PrivateKeyProvider): Promise<void>;
-  connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
-  authenticateUser(): Promise<UserAuthInfo>;
-  addChain(chainConfig: CustomChainConfig): Promise<void>;
-  switchChain(params: { chainId: string }): Promise<void>;
-}
-
 export interface Web3AuthOptions {
   /**
    * Client id for web3auth.
@@ -85,8 +75,36 @@ export type AggregateVerifierParams = {
   verifier_id: string;
 };
 
+export interface Auth0UserInfo {
+  picture: string;
+  email: string;
+  name: string;
+  sub: string;
+  nickname: string;
+}
+
+export interface SingleFactorUserInfo extends Auth0UserInfo {
+  verifier: string;
+  verifierId: string;
+  typeOfLogin: string;
+}
+
 export interface SessionData {
   privKey?: string;
+  userInfo?: SingleFactorUserInfo;
+}
+
+export interface IWeb3Auth {
+  sessionId: string | null;
+  provider: SafeEventEmitterProvider | null;
+  connected: boolean;
+  state: SessionData;
+  init(provider: PrivateKeyProvider): Promise<void>;
+  connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
+  authenticateUser(): Promise<UserAuthInfo>;
+  addChain(chainConfig: CustomChainConfig): Promise<void>;
+  switchChain(params: { chainId: string }): Promise<void>;
+  getUserInfo(): Promise<SingleFactorUserInfo>;
 }
 
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
