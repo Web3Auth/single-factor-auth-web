@@ -1,6 +1,8 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
+import { ADAPTER_STATUS } from "./constants";
+
 export interface TorusSubVerifierInfo {
   verifier: string;
   idToken: string;
@@ -94,8 +96,14 @@ export interface SessionData {
   userInfo?: SingleFactorUserInfo;
 }
 
+export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
+
 export interface IWeb3Auth {
+  /**
+   * @deprecated would be removed in future versions. Use `connected` instead
+   */
   sessionId: string | null;
+  status: ADAPTER_STATUS_TYPE;
   provider: SafeEventEmitterProvider | null;
   connected: boolean;
   state: SessionData;

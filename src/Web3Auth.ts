@@ -6,6 +6,7 @@ import { BrowserStorage, OPENLOGIN_NETWORK_TYPE } from "@toruslabs/openlogin-uti
 import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
   ADAPTER_EVENTS,
+  ADAPTER_STATUS,
   CHAIN_NAMESPACES,
   ChainNamespaceType,
   checkIfTokenIsExpired,
@@ -21,6 +22,7 @@ import {
 import jwtDecode from "jwt-decode";
 
 import {
+  ADAPTER_STATUS_TYPE,
   AggregateVerifierParams,
   Auth0UserInfo,
   IWeb3Auth,
@@ -78,6 +80,12 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   get provider(): IProvider | null {
     return this.privKeyProvider || null;
+  }
+
+  get status(): ADAPTER_STATUS_TYPE {
+    if (this.ready) return ADAPTER_STATUS.READY;
+    if (this.connected) return ADAPTER_STATUS.CONNECTED;
+    return ADAPTER_STATUS.NOT_READY;
   }
 
   async init(provider: PrivateKeyProvider): Promise<void> {
