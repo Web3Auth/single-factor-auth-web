@@ -2,7 +2,7 @@ import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage, OPENLOGIN_NETWORK_TYPE } from "@toruslabs/openlogin-utils";
+import { BrowserStorage, OPENLOGIN_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/openlogin-utils";
 import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
   ADAPTER_EVENTS,
@@ -63,7 +63,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
     this.options = {
       ...options,
-      web3AuthNetwork: options.web3AuthNetwork || "mainnet",
+      web3AuthNetwork: options.web3AuthNetwork || TORUS_SAPPHIRE_NETWORK.SAPPHIRE_MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
       storageKey: options.storageKey || "local",
