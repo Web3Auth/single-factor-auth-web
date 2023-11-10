@@ -1,4 +1,5 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
+import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
 import { ADAPTER_STATUS } from "./constants";
@@ -85,15 +86,9 @@ export interface Auth0UserInfo {
   nickname: string;
 }
 
-export interface SingleFactorUserInfo extends Auth0UserInfo {
-  verifier: string;
-  verifierId: string;
-  typeOfLogin: string;
-}
-
 export interface SessionData {
   privKey?: string;
-  userInfo?: SingleFactorUserInfo;
+  userInfo?: OpenloginUserInfo;
 }
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
@@ -112,7 +107,7 @@ export interface IWeb3Auth {
   authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
   switchChain(params: { chainId: string }): Promise<void>;
-  getUserInfo(): Promise<SingleFactorUserInfo>;
+  getUserInfo(): Promise<OpenloginUserInfo>;
 }
 
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };

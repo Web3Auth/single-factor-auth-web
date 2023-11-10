@@ -2,7 +2,7 @@ import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage, OPENLOGIN_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/openlogin-utils";
+import { BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
   ADAPTER_EVENTS,
@@ -19,7 +19,7 @@ import {
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 import {
   ADAPTER_STATUS_TYPE,
@@ -29,7 +29,6 @@ import {
   LoginParams,
   PrivateKeyProvider,
   SessionData,
-  SingleFactorUserInfo,
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
@@ -63,7 +62,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
     this.options = {
       ...options,
-      web3AuthNetwork: options.web3AuthNetwork || TORUS_SAPPHIRE_NETWORK.SAPPHIRE_MAINNET,
+      web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
       storageKey: options.storageKey || "local",
@@ -299,11 +298,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     // we are using the original private key so that we can retrieve other keys later on
     const decodedToken = jwtDecode<Auth0UserInfo>(idToken);
     const userInfo = {
-      name: decodedToken.name || "",
+      name: decodedToken.name || decodedToken.nickname || "",
       email: decodedToken.email || "",
-      picture: decodedToken.picture || "",
-      nickname: decodedToken.nickname || "",
-      sub: decodedToken.sub || "",
+      profileImage: decodedToken.picture || "",
       verifierId,
       verifier,
       typeOfLogin: "jwt",
@@ -328,9 +325,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       userInfo: {
         name: "",
         email: "",
-        picture: "",
-        nickname: "",
-        sub: "",
+        profileImage: "",
         verifierId: "",
         verifier: "",
         typeOfLogin: "",
@@ -340,7 +335,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.ready = false;
   }
 
-  public async getUserInfo(): Promise<SingleFactorUserInfo> {
+  public async getUserInfo(): Promise<OpenloginUserInfo> {
     if (!this.sessionId) throw WalletLoginError.userNotLoggedIn();
     return this.state.userInfo;
   }
