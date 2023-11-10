@@ -297,13 +297,14 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.sessionManager.sessionId = sessionId;
     // we are using the original private key so that we can retrieve other keys later on
     const decodedToken = jwtDecode<Auth0UserInfo>(idToken);
-    const userInfo = {
+    const userInfo: OpenloginUserInfo = {
       name: decodedToken.name || decodedToken.nickname || "",
       email: decodedToken.email || "",
       profileImage: decodedToken.picture || "",
       verifierId,
       verifier,
       typeOfLogin: "jwt",
+      oAuthIdToken: idToken,
     };
     await this.sessionManager.createSession({ privKey, userInfo });
     this.updateState({ privKey, userInfo });
