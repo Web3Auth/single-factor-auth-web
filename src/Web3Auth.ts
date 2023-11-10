@@ -1,9 +1,12 @@
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage, OPENLOGIN_NETWORK_TYPE } from "@toruslabs/openlogin-utils";
+import { BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
+  ADAPTER_EVENTS,
+  ADAPTER_STATUS,
   CHAIN_NAMESPACES,
   ChainNamespaceType,
   checkIfTokenIsExpired,
@@ -16,10 +19,21 @@ import {
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
+import { jwtDecode } from "jwt-decode";
 
-import { AggregateVerifierParams, IWeb3Auth, LoginParams, PrivateKeyProvider, SessionData, UserAuthInfo, Web3AuthOptions } from "./interface";
+import {
+  ADAPTER_STATUS_TYPE,
+  AggregateVerifierParams,
+  Auth0UserInfo,
+  IWeb3Auth,
+  LoginParams,
+  PrivateKeyProvider,
+  SessionData,
+  UserAuthInfo,
+  Web3AuthOptions,
+} from "./interface";
 
-class Web3Auth implements IWeb3Auth {
+class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   readonly options: Web3AuthOptions;
 
   public ready = false;
@@ -27,6 +41,8 @@ class Web3Auth implements IWeb3Auth {
   public authInstance: Torus | null = null;
 
   public nodeDetailManagerInstance: NodeDetailManager | null = null;
+
+  public state: SessionData = {};
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
@@ -41,11 +57,12 @@ class Web3Auth implements IWeb3Auth {
   private readonly storageKey = "sfa_store";
 
   constructor(options: Web3AuthOptions) {
+    super();
     if (!options.clientId) throw WalletInitializationError.invalidParams("Please provide a valid clientId in constructor");
 
     this.options = {
       ...options,
-      web3AuthNetwork: options.web3AuthNetwork || "mainnet",
+      web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
       storageKey: options.storageKey || "local",
@@ -56,8 +73,18 @@ class Web3Auth implements IWeb3Auth {
     return (this.sessionManager && this.sessionManager.sessionId) || null;
   }
 
+  get connected(): boolean {
+    return Boolean(this.sessionId);
+  }
+
   get provider(): IProvider | null {
     return this.privKeyProvider || null;
+  }
+
+  get status(): ADAPTER_STATUS_TYPE {
+    if (this.ready) return ADAPTER_STATUS.READY;
+    if (this.connected) return ADAPTER_STATUS.CONNECTED;
+    return ADAPTER_STATUS.NOT_READY;
   }
 
   async init(provider: PrivateKeyProvider): Promise<void> {
@@ -93,10 +120,14 @@ class Web3Auth implements IWeb3Auth {
       // we are doing this to make sure sessionKey is set
       // before we call authorizeSession in both cjs and esm bundles.
       this.sessionManager.sessionId = sessionId;
-      const data = await this.sessionManager.authorizeSession().catch(() => {});
+      const data = await this.sessionManager.authorizeSession().catch(() => {
+        this.currentStorage.set("sessionId", "");
+      });
       if (data && data.privKey) {
         const finalPrivKey = await this._getFinalPrivKey(data.privKey);
         await this.privKeyProvider.setupProvider(finalPrivKey);
+        this.updateState(data);
+        this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
       }
     }
     this.ready = true;
@@ -214,6 +245,7 @@ class Web3Auth implements IWeb3Auth {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
+    if (!verifier || !verifierId || !idToken) throw WalletInitializationError.invalidParams("verifier or verifierId or idToken  required");
     const verifierDetails = { verifier, verifierId };
 
     const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
@@ -264,8 +296,19 @@ class Web3Auth implements IWeb3Auth {
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
     // we are using the original private key so that we can retrieve other keys later on
-    await this.sessionManager.createSession({ privKey });
+    const decodedToken = jwtDecode<Auth0UserInfo>(idToken);
+    const userInfo = {
+      name: decodedToken.name || decodedToken.nickname || "",
+      email: decodedToken.email || "",
+      profileImage: decodedToken.picture || "",
+      verifierId,
+      verifier,
+      typeOfLogin: "jwt",
+    };
+    await this.sessionManager.createSession({ privKey, userInfo });
+    this.updateState({ privKey, userInfo });
     this.currentStorage.set("sessionId", sessionId);
+    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
     return this.provider;
   }
 
@@ -276,8 +319,29 @@ class Web3Auth implements IWeb3Auth {
 
     await this.sessionManager.invalidateSession();
     this.currentStorage.set("sessionId", "");
+    this.emit(ADAPTER_EVENTS.DISCONNECTED);
+    this.updateState({
+      privKey: "",
+      userInfo: {
+        name: "",
+        email: "",
+        profileImage: "",
+        verifierId: "",
+        verifier: "",
+        typeOfLogin: "",
+      },
+    });
     this.privKeyProvider = null;
     this.ready = false;
+  }
+
+  public async getUserInfo(): Promise<OpenloginUserInfo> {
+    if (!this.sessionId) throw WalletLoginError.userNotLoggedIn();
+    return this.state.userInfo;
+  }
+
+  private updateState(newState: Partial<SessionData>) {
+    this.state = { ...this.state, ...newState };
   }
 
   private async _getFinalPrivKey(privKey: string) {

@@ -45,23 +45,17 @@ export default class EthereumRpc {
       const accounts = await web3.eth.getAccounts();
       const message =
         "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad";
-      (web3.currentProvider as any)?.send(
+      const result = (web3.currentProvider as any)?.sendAsync(
         {
           method: "eth_sign",
           params: [accounts[0], message],
           from: accounts[0],
         },
-        (err: Error, result: any) => {
-          if (err) {
-            return console.error(err);
-          }
-          return result;
-        }
       );
+      return result
     } catch (error) {
       return error as string;
     }
-    return;
   }
 
   async signAndSendTransaction(): Promise<string> {
