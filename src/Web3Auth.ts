@@ -202,8 +202,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
     }
+
     // Does the key assign
-    await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
+    if (this.authInstance.isLegacyNetwork) await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
 
     let finalIdToken = idToken;
     let finalVerifierParams = { verifier_id: verifierId };
@@ -253,11 +254,14 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
     }
-    // does the key assign
-    const pubDetails = await this.authInstance.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
 
-    if (pubDetails.metadata.upgraded) {
-      throw WalletLoginError.mfaEnabled();
+    if (this.authInstance.isLegacyNetwork) {
+      // does the key assign
+      const pubDetails = await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+
+      if (pubDetails.metadata.upgraded) {
+        throw WalletLoginError.mfaEnabled();
+      }
     }
 
     let finalIdToken = idToken;
@@ -286,6 +290,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       finalVerifierParams,
       finalIdToken
     );
+    if (retrieveSharesResponse.metadata.upgraded) {
+      throw WalletLoginError.mfaEnabled();
+    }
     const { finalKeyData, oAuthKeyData } = retrieveSharesResponse;
     const privKey = finalKeyData.privKey || oAuthKeyData.privKey;
     if (!privKey) throw WalletLoginError.fromCode(5000, "Unable to get private key from torus nodes");
