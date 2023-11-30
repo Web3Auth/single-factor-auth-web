@@ -11,12 +11,7 @@ import RPC from "./evm.web3";
 
 // Firebase libraries for custom authentication
 import { initializeApp } from "firebase/app";
-import {
-  GoogleAuthProvider,
-  getAuth,
-  signInWithPopup,
-  UserCredential,
-} from "firebase/auth";
+import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "firebase/auth";
 
 import Loading from "./Loading";
 import "./App.css";
@@ -24,8 +19,7 @@ import { IProvider } from "@web3auth/base";
 
 const verifier = "web3auth-firebase-examples";
 
-const clientId =
-  "BEglQSgt4cUWcj6SKRdu5QkOXTsePmMcusG5EAoyjyOYKlVRjIF1iCNnMOTfpzCiunHRrMui8TIwQPXdkQ8Yxuk"; // get from https://dashboard.web3auth.io
+const clientId = "BEglQSgt4cUWcj6SKRdu5QkOXTsePmMcusG5EAoyjyOYKlVRjIF1iCNnMOTfpzCiunHRrMui8TIwQPXdkQ8Yxuk"; // get from https://dashboard.web3auth.io
 
 const chainConfig = {
   chainNamespace: CHAIN_NAMESPACES.EIP155,
@@ -65,18 +59,19 @@ function App() {
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
-          console.log('sfa:connected', data);
-          console.log("sfa:state", web3authSfa?.state)
-          setProvider(web3authSfa.provider)
+          console.log("sfa:connected", data);
+          console.log("sfa:state", web3authSfa?.state);
+          setProvider(web3authSfa.provider);
           setUsesSfaSDK(true);
-        })
+        });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
-          console.log('sfa:disconnected');
-          setProvider(null)
-        })
+          console.log("sfa:disconnected");
+          setProvider(null);
+        });
         setWeb3authSFAuth(web3authSfa);
-        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
+        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
         await web3authSfa.init(provider);
+        (window as any).web3auth = web3authSfa;
       } catch (error) {
         console.error(error);
       }
@@ -147,10 +142,7 @@ function App() {
 
   const getUserInfo = async () => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
-      uiConsole(
-        "user info",
-        await web3authSFAuth?.getUserInfo(),
-      );
+      uiConsole("user info", await web3authSFAuth?.getUserInfo());
       return;
     }
   };
@@ -195,13 +187,13 @@ function App() {
   const logout = async () => {
     if (usesSfaSDK) {
       if (!web3authSFAuth) {
-        throw new Error('web3auth sfa auth not initialized.');
+        throw new Error("web3auth sfa auth not initialized.");
       }
       console.log(
         "You are directly using Single Factor Auth SDK to login the user, hence the Web3Auth logout function won't work for you. You can logout the user directly from your login provider, or just clear the provider object."
       );
       await web3authSFAuth.logout();
-      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } })
+      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
       await web3authSFAuth.init(provider);
       return;
     }
@@ -354,17 +346,7 @@ function App() {
         SFA React Example
       </h1>
 
-      {isLoggingIn ? (
-				<Loading />
-			) : (
-        <div className="grid">
-          {web3authSFAuth
-            ? provider
-              ? loginView
-              : logoutView
-            : null}
-        </div>
-      )}
+      {isLoggingIn ? <Loading /> : <div className="grid">{web3authSFAuth ? (provider ? loginView : logoutView) : null}</div>}
 
       <footer className="footer">
         <a
