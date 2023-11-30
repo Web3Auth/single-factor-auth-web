@@ -82,7 +82,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   }
 
   get status(): ADAPTER_STATUS_TYPE {
-    if (this.ready) return ADAPTER_STATUS.READY;
+    if (this.ready && !this.connected) return ADAPTER_STATUS.READY;
     if (this.connected) return ADAPTER_STATUS.CONNECTED;
     return ADAPTER_STATUS.NOT_READY;
   }
