@@ -13,15 +13,6 @@ export type InitParams = { network: TORUS_NETWORK_TYPE };
 
 export type PrivateKeyProvider = IBaseProvider<string> & { getEd25519Key?: (privKey: string) => string };
 
-export type LoginParams = {
-  verifier: string;
-  verifierId: string;
-  idToken: string;
-  subVerifierInfoArray?: TorusSubVerifierInfo[];
-  // offset in seconds
-  serverTimeOffset?: number;
-};
-
 export type UserAuthInfo = { idToken: string };
 
 export interface Web3AuthOptions {
@@ -90,6 +81,16 @@ export interface SessionData {
   privKey?: string;
   userInfo?: OpenloginUserInfo;
 }
+
+export type LoginParams = {
+  verifier: string;
+  verifierId: string;
+  idToken: string;
+  subVerifierInfoArray?: TorusSubVerifierInfo[];
+  // offset in seconds
+  serverTimeOffset?: number;
+  fallbackUserInfo?: Partial<Auth0UserInfo>;
+};
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
 
