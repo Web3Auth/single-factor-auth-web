@@ -303,11 +303,16 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
     // we are using the original private key so that we can retrieve other keys later on
-    const decodedToken = jwtDecode<Auth0UserInfo>(idToken);
+    let decodedUserInfo: Partial<Auth0UserInfo>;
+    try {
+      decodedUserInfo = jwtDecode<Auth0UserInfo>(idToken);
+    } catch (error) {
+      decodedUserInfo = loginParams.fallbackUserInfo;
+    }
     const userInfo: OpenloginUserInfo = {
-      name: decodedToken.name || decodedToken.nickname || "",
-      email: decodedToken.email || "",
-      profileImage: decodedToken.picture || "",
+      name: decodedUserInfo.name || decodedUserInfo.nickname || "",
+      email: decodedUserInfo.email || "",
+      profileImage: decodedUserInfo.picture || "",
       verifierId,
       verifier,
       typeOfLogin: "jwt",
