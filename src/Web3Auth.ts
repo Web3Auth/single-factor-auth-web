@@ -1,8 +1,8 @@
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
-import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
+import { SafeEventEmitter, SafeEventEmitterProvider } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
+import { base64url, BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import Torus, { keccak256 } from "@toruslabs/torus.js";
 import {
   ADAPTER_EVENTS,
@@ -13,25 +13,30 @@ import {
   CustomChainConfig,
   getSavedToken,
   IProvider,
+  log,
   saveToken,
   signChallenge,
   verifySignedChallenge,
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
+import BN from "bn.js";
 import { jwtDecode } from "jwt-decode";
 
+import { getNonce, getUserInfo, saveUserInfo, setNonce } from "./helpers";
 import {
   ADAPTER_STATUS_TYPE,
   AggregateVerifierParams,
   Auth0UserInfo,
   IWeb3Auth,
   LoginParams,
+  PasskeyConnectParams,
   PrivateKeyProvider,
   SessionData,
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
+import { ecCurve } from "./utils";
 
 class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   readonly options: Web3AuthOptions;
@@ -54,6 +59,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private currentStorage!: BrowserStorage;
 
+  private oAuthKey: string | null = null;
+
   private readonly storageKey = "sfa_store";
 
   constructor(options: Web3AuthOptions) {
@@ -67,6 +74,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
       storageKey: options.storageKey || "local",
     };
+
+    // TODO: fix the metadata url.
   }
 
   get sessionId(): string | null {
@@ -124,6 +133,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.currentStorage.set("sessionId", "");
       });
       if (data && data.privKey) {
+        this.oAuthKey = data.privKey;
         const finalPrivKey = await this._getFinalPrivKey(data.privKey);
         await this.privKeyProvider.setupProvider(finalPrivKey);
         this.updateState(data);
@@ -194,47 +204,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   async getPostboxKey(loginParams: LoginParams): Promise<string> {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
-    const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
-    const verifierDetails = { verifier, verifierId };
-
-    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
-
-    if (loginParams.serverTimeOffset) {
-      this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
-    }
-
-    // Does the key assign
-    if (this.authInstance.isLegacyNetwork) await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
-
-    let finalIdToken = idToken;
-    let finalVerifierParams = { verifier_id: verifierId };
-    if (subVerifierInfoArray && subVerifierInfoArray?.length > 0) {
-      const aggregateVerifierParams: AggregateVerifierParams = { verify_params: [], sub_verifier_ids: [], verifier_id: "" };
-      const aggregateIdTokenSeeds = [];
-      for (let index = 0; index < subVerifierInfoArray.length; index += 1) {
-        const userInfo = subVerifierInfoArray[index];
-        aggregateVerifierParams.verify_params.push({ verifier_id: verifierId, idtoken: userInfo.idToken });
-        aggregateVerifierParams.sub_verifier_ids.push(userInfo.verifier);
-        aggregateIdTokenSeeds.push(userInfo.idToken);
-      }
-      aggregateIdTokenSeeds.sort();
-
-      finalIdToken = keccak256(Buffer.from(aggregateIdTokenSeeds.join(String.fromCharCode(29)), "utf8")).slice(2);
-
-      aggregateVerifierParams.verifier_id = verifierId;
-      finalVerifierParams = aggregateVerifierParams;
-    }
-
-    const retrieveSharesResponse = await this.authInstance.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
-      verifier,
-      finalVerifierParams,
-      finalIdToken
-    );
-
-    const postboxKey = Torus.getPostboxKey(retrieveSharesResponse);
-    return postboxKey.padStart(64, "0");
+    return this.getTorusKey(loginParams);
   }
 
   /**
@@ -295,13 +265,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     }
     const { finalKeyData, oAuthKeyData } = retrieveSharesResponse;
     const privKey = finalKeyData.privKey || oAuthKeyData.privKey;
+    this.oAuthKey = privKey;
     if (!privKey) throw WalletLoginError.fromCode(5000, "Unable to get private key from torus nodes");
 
-    const finalPrivKey = await this._getFinalPrivKey(privKey);
-    await this.privKeyProvider.setupProvider(finalPrivKey);
-
-    const sessionId = OpenloginSessionManager.generateRandomSessionKey();
-    this.sessionManager.sessionId = sessionId;
     // we are using the original private key so that we can retrieve other keys later on
     let decodedUserInfo: Partial<Auth0UserInfo>;
     try {
@@ -318,10 +284,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       typeOfLogin: "jwt",
       oAuthIdToken: idToken,
     };
-    await this.sessionManager.createSession({ privKey, userInfo });
-    this.updateState({ privKey, userInfo });
-    this.currentStorage.set("sessionId", sessionId);
-    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
+    await this.setupProvider(privKey, userInfo);
     return this.provider;
   }
 
@@ -353,6 +316,119 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return this.state.userInfo;
   }
 
+  public async registerPasskey(params: PasskeyConnectParams): Promise<boolean> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (!this.oAuthKey) throw WalletLoginError.userNotLoggedIn();
+
+    // user is logged in.
+    const { verifier, extraVerifierParams } = params;
+    if (!verifier) throw WalletInitializationError.invalidParams("verifier is required");
+    if (!extraVerifierParams) throw WalletInitializationError.invalidParams("extraVerifierParams is required");
+    if (!extraVerifierParams.signature) throw WalletInitializationError.invalidParams("signature is required");
+    if (!extraVerifierParams.clientDataJSON) throw WalletInitializationError.invalidParams("clientDataJSON is required");
+    if (!extraVerifierParams.authenticatorData) throw WalletInitializationError.invalidParams("authenticatorData is required");
+    if (!extraVerifierParams.publicKey) throw WalletInitializationError.invalidParams("publicKey is required");
+    if (!extraVerifierParams.challenge) throw WalletInitializationError.invalidParams("challenge is required");
+    if (!extraVerifierParams.rpId) throw WalletInitializationError.invalidParams("rpId is required");
+    if (!extraVerifierParams.credId) throw WalletInitializationError.invalidParams("credId is required");
+
+    const { signature, clientDataJSON, authenticatorData, publicKey, challenge, rpId, credId } = extraVerifierParams;
+
+    const verifierHash = keccak256(Buffer.from(publicKey, "base64")).slice(2);
+    const verifierId = base64url.fromBase64(Buffer.from(verifierHash, "hex").toString("base64"));
+
+    const loginParams: LoginParams = {
+      verifier,
+      verifierId,
+      idToken: signature,
+      extraVerifierParams: {
+        signature,
+        clientDataJSON,
+        authenticatorData,
+        publicKey,
+        challenge,
+        rpOrigin: window.location.origin,
+        rpId,
+        credId,
+      },
+    };
+
+    try {
+      // get the passkey private key.
+      const passkey = await this.getTorusKey(loginParams);
+
+      // get the deterministic nonce.
+      // Nonce = OAuthKey - Passkey.
+      const nonce = this.getNonce(this.oAuthKey, passkey);
+
+      // save the nonce in the metadata db.
+      // this will throw an error if it fails.
+      await setNonce(this.options.metadataHost, passkey, nonce, this.options.serverTimeOffset);
+
+      // if the nonce is set, then we are good to go.
+      // We set the oAuthUserInfo in the metadata DB.
+      // This will be help us to get the user info when you login with passkey.
+      await saveUserInfo(this.options.metadataHost, this.oAuthKey, this.state.userInfo);
+
+      return true;
+    } catch (error: unknown) {
+      log.error("error while registering passkey", error);
+      throw WalletLoginError.fromCode(5000, "Unable to register passkey, please try again.");
+    }
+  }
+
+  public async loginWithPasskey(params: PasskeyConnectParams): Promise<SafeEventEmitterProvider> {
+    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+
+    // user is logged in.
+    const { verifier, extraVerifierParams } = params;
+    if (!verifier) throw WalletInitializationError.invalidParams("verifier is required");
+    if (!extraVerifierParams) throw WalletInitializationError.invalidParams("extraVerifierParams is required");
+    if (!extraVerifierParams.signature) throw WalletInitializationError.invalidParams("signature is required");
+    if (!extraVerifierParams.clientDataJSON) throw WalletInitializationError.invalidParams("clientDataJSON is required");
+    if (!extraVerifierParams.authenticatorData) throw WalletInitializationError.invalidParams("authenticatorData is required");
+    if (!extraVerifierParams.publicKey) throw WalletInitializationError.invalidParams("publicKey is required");
+    if (!extraVerifierParams.challenge) throw WalletInitializationError.invalidParams("challenge is required");
+    if (!extraVerifierParams.rpId) throw WalletInitializationError.invalidParams("rpId is required");
+    if (!extraVerifierParams.credId) throw WalletInitializationError.invalidParams("credId is required");
+
+    const { signature, clientDataJSON, authenticatorData, publicKey, challenge, rpId, credId } = extraVerifierParams;
+
+    const verifierHash = keccak256(Buffer.from(publicKey, "base64")).slice(2);
+    const verifierId = base64url.fromBase64(Buffer.from(verifierHash, "hex").toString("base64"));
+    const loginParams: LoginParams = {
+      verifier,
+      verifierId,
+      idToken: signature,
+      extraVerifierParams: {
+        signature,
+        clientDataJSON,
+        authenticatorData,
+        publicKey,
+        challenge,
+        rpId,
+        rpOrigin: window.location.origin,
+        credId,
+      },
+    };
+
+    try {
+      // get the passkey private key.
+      const passkey = await this.getTorusKey(loginParams);
+      const nonce = await getNonce(this.options.metadataHost, passkey, this.options.serverTimeOffset);
+      if (!nonce) throw WalletLoginError.fromCode(5000, "Unable to login with passkey, no passkey found or different passkey selected to login.");
+
+      const privKey = this.getPrivKeyFromNonce(passkey, nonce);
+      // get the oAuthUserInfo from the metadata DB.
+      const userInfo = await getUserInfo(this.options.metadataHost, privKey);
+      await this.setupProvider(privKey, userInfo);
+      return this.provider;
+    } catch (error: unknown) {
+      log.error("error while login with passkey", error);
+      throw WalletLoginError.fromCode(5000, "Unable to login with passkey, please try again.");
+    }
+  }
+
   private updateState(newState: Partial<SessionData>) {
     this.state = { ...this.state, ...newState };
   }
@@ -371,6 +447,79 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       finalPrivKey = this.privKeyProvider.getEd25519Key(finalPrivKey);
     }
     return finalPrivKey;
+  }
+
+  private async getTorusKey(loginParams: LoginParams): Promise<string> {
+    const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
+    const verifierDetails = { verifier, verifierId };
+
+    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+
+    if (loginParams.serverTimeOffset) {
+      this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
+    }
+
+    // Does the key assign
+    if (this.authInstance.isLegacyNetwork) await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
+
+    let finalIdToken = idToken;
+    let finalVerifierParams = { verifier_id: verifierId };
+    if (subVerifierInfoArray && subVerifierInfoArray?.length > 0) {
+      const aggregateVerifierParams: AggregateVerifierParams = { verify_params: [], sub_verifier_ids: [], verifier_id: "" };
+      const aggregateIdTokenSeeds = [];
+      for (let index = 0; index < subVerifierInfoArray.length; index += 1) {
+        const userInfo = subVerifierInfoArray[index];
+        aggregateVerifierParams.verify_params.push({
+          verifier_id: verifierId,
+          idtoken: userInfo.idToken,
+        });
+        aggregateVerifierParams.sub_verifier_ids.push(userInfo.verifier);
+        aggregateIdTokenSeeds.push(userInfo.idToken);
+      }
+      aggregateIdTokenSeeds.sort();
+
+      finalIdToken = keccak256(Buffer.from(aggregateIdTokenSeeds.join(String.fromCharCode(29)), "utf8")).slice(2);
+
+      aggregateVerifierParams.verifier_id = verifierId;
+      finalVerifierParams = aggregateVerifierParams;
+    }
+
+    const retrieveSharesResponse = await this.authInstance.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      verifier,
+      finalVerifierParams,
+      finalIdToken,
+      loginParams.extraVerifierParams || {}
+    );
+
+    const postboxKey = Torus.getPostboxKey(retrieveSharesResponse);
+    return postboxKey.padStart(64, "0");
+  }
+
+  private getNonce(oAuthKey: string, passkey: string): string {
+    return new BN(oAuthKey, "hex").sub(new BN(passkey, "hex")).umod(ecCurve.curve.n).toString("hex", 64);
+  }
+
+  private getPrivKeyFromNonce(passkey: string, nonce: string): string {
+    return new BN(passkey, "hex").add(new BN(nonce, "hex")).umod(ecCurve.curve.n).toString("hex", 64);
+  }
+
+  private async setupProvider(privKey: string, userInfo: OpenloginUserInfo) {
+    this.oAuthKey = privKey;
+    // update the provider with the private key.
+    const finalPrivKey = await this._getFinalPrivKey(privKey);
+    await this.privKeyProvider.setupProvider(finalPrivKey);
+
+    // save the data in the session.
+    const sessionId = OpenloginSessionManager.generateRandomSessionKey();
+    this.sessionManager.sessionId = sessionId;
+    await this.sessionManager.createSession({ privKey, userInfo });
+
+    // update the local state.
+    this.updateState({ privKey, userInfo });
+    this.currentStorage.set("sessionId", sessionId);
+    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
   }
 }
 

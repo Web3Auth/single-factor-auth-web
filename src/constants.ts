@@ -5,3 +5,6 @@ export const ADAPTER_STATUS = {
   READY: "ready",
   CONNECTED: "connected",
 } as const;
+
+export const PASSKEY_NONCE = "passkey_nonce";
+export const OAUTH_USERINFO = "oauth_userinfo";

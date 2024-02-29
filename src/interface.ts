@@ -61,6 +61,17 @@ export interface Web3AuthOptions {
    * @defaultValue https://broadcast-server.tor.us
    */
   storageServerUrl?: string;
+
+  /**
+   * Specify a custom metadata server url
+   * @defaultValue https://metadata.tor.us
+   */
+  metadataHost?: string;
+
+  /**
+   * Specify a custom server time offset.
+   */
+  serverTimeOffset?: number;
 }
 
 export type AggregateVerifierParams = {
@@ -82,7 +93,17 @@ export interface SessionData {
   userInfo?: OpenloginUserInfo;
 }
 
-export type LoginParams = {
+export interface PasskeyExtraVerifierParams extends Record<string, string> {
+  signature: string; // LOGIN
+  clientDataJSON: string; // LOGIN
+  authenticatorData: string; // LOGIN
+  publicKey: string; // REGISTER
+  challenge: string; // LOGIN
+  rpId: string; // LOGIN/REGISTER
+  credId: string; // LOGIN/REGISTER
+}
+
+export interface LoginParams {
   verifier: string;
   verifierId: string;
   idToken: string;
@@ -90,7 +111,19 @@ export type LoginParams = {
   // offset in seconds
   serverTimeOffset?: number;
   fallbackUserInfo?: Partial<Auth0UserInfo>;
-};
+  // mainly used for passkey verifiers.
+  // This are the extra params required for passkey login.
+  extraVerifierParams?: PasskeyExtraVerifierParams;
+}
+
+export interface PasskeyConnectParams extends Pick<LoginParams, "serverTimeOffset" | "verifier"> {
+  extraVerifierParams: PasskeyExtraVerifierParams;
+}
+
+export interface DeletePasskeyParams {
+  credentialPublicKey?: string;
+  verifier: string;
+}
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
 
@@ -109,6 +142,19 @@ export interface IWeb3Auth {
   addChain(chainConfig: CustomChainConfig): Promise<void>;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
+  registerPasskey(params: PasskeyConnectParams): Promise<boolean>;
+  loginWithPasskey(params: PasskeyConnectParams): Promise<SafeEventEmitterProvider | null>;
+}
+
+export interface MetadataParams {
+  namespace?: string;
+  pub_key_X: string;
+  pub_key_Y: string;
+  set_data: {
+    data: string;
+    timestamp: string;
+  };
+  signature: string;
 }
 
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
