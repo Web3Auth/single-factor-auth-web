@@ -43,7 +43,6 @@ const firebaseConfig = {
 
 function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
-  const [usesSfaSDK, setUsesSfaSDK] = useState(false);
   const [provider, setProvider] = useState<IProvider | null>(null);
   // const [idToken, setIdToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -62,7 +61,6 @@ function App() {
           console.log("sfa:connected", data);
           console.log("sfa:state", web3authSfa?.state);
           setProvider(web3authSfa.provider);
-          setUsesSfaSDK(true);
         });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
           console.log("sfa:disconnected");
@@ -111,7 +109,7 @@ function App() {
 
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
-        verifierId: sub,
+        verifierId: sub!,
         idToken: token,
       });
       if (web3authSfaprovider) {
@@ -119,7 +117,6 @@ function App() {
         const privKey = await web3authSfaprovider?.request({ method: "eth_private_key" });
         console.log(privKey);
       }
-      setUsesSfaSDK(true);
       setIsLoggingIn(false);
     } catch (err) {
       // Single Factor Auth SDK throws an error if the user has already enabled MFA
@@ -174,18 +171,13 @@ function App() {
   };
 
   const logout = async () => {
-    if (usesSfaSDK) {
-      if (!web3authSFAuth) {
-        throw new Error("web3auth sfa auth not initialized.");
-      }
-      console.log(
-        "You are directly using Single Factor Auth SDK to login the user, hence the Web3Auth logout function won't work for you. You can logout the user directly from your login provider, or just clear the provider object."
-      );
-      await web3authSFAuth.logout();
-      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-      await web3authSFAuth.init(provider);
-      return;
+    if (!web3authSFAuth) {
+      throw new Error("web3auth sfa auth not initialized.");
     }
+    await web3authSFAuth.logout();
+    const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
+    await web3authSFAuth.init(provider);
+    return;
   };
 
   const getAccounts = async () => {
