@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
-import { Web3Auth, ADAPTER_EVENTS } from "@web3auth/single-factor-auth";
+import { Web3Auth, ADAPTER_EVENTS, parseToken } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
@@ -89,17 +89,6 @@ function App() {
     } catch (err) {
       console.error(err);
       throw err;
-    }
-  };
-
-  const parseToken = (token: any) => {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace("-", "+").replace("_", "/");
-      return JSON.parse(window.atob(base64 || ""));
-    } catch (err) {
-      console.error(err);
-      return null;
     }
   };
 
