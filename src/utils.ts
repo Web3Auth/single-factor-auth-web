@@ -1,4 +1,8 @@
-import { jwtDecode, JwtPayload } from "jwt-decode";
-export function parseToken(token: string): JwtPayload {
-  return jwtDecode(token);
+import { safeatob } from "@toruslabs/openlogin-utils";
+export function decodeToken(token: string) {
+  const [header, payload] = token.split(".");
+  return {
+    header: JSON.parse(safeatob(header)),
+    payload: JSON.parse(safeatob(payload)),
+  };
 }

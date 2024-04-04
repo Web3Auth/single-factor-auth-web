@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
-import { Web3Auth, ADAPTER_EVENTS, parseToken } from "@web3auth/single-factor-auth";
+import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 
@@ -105,11 +105,11 @@ function App() {
         return;
       }
       // get sub value from firebase id token
-      const { sub } = parseToken(token);
+      const { payload } = decodeToken(token);
 
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
-        verifierId: sub!,
+        verifierId: payload.sub,
         idToken: token,
       });
       if (web3authSfaprovider) {
