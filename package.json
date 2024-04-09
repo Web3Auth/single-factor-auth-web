@@ -60,6 +60,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20",
+    "@web3auth/base-plugin": "^8.0.1",
     "@web3auth/base-provider": "^7.3.1",
     "@web3auth/ethereum-provider": "7.3.1",
     "@web3auth/solana-provider": "7.3.1",

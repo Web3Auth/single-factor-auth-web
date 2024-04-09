@@ -1,9 +1,9 @@
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
-import { SafeEventEmitter, SafeEventEmitterProvider } from "@toruslabs/openlogin-jrpc";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
 import { subkey } from "@toruslabs/openlogin-subkey";
-import { base64url, BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import Torus, { keccak256 } from "@toruslabs/torus.js";
+import { BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
+import Torus, { keccak256, TorusKey } from "@toruslabs/torus.js";
 import {
   ADAPTER_EVENTS,
   ADAPTER_STATUS,
@@ -13,30 +13,28 @@ import {
   CustomChainConfig,
   getSavedToken,
   IProvider,
-  log,
   saveToken,
   signChallenge,
   verifySignedChallenge,
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
-import BN from "bn.js";
+import { type IPlugin } from "@web3auth/base-plugin";
 import { jwtDecode } from "jwt-decode";
 
-import { getNonce, getUserInfo, saveUserInfo, setNonce } from "./helpers";
+import { PASSKEYS_PLUGIN } from "./constants";
 import {
   ADAPTER_STATUS_TYPE,
   AggregateVerifierParams,
   Auth0UserInfo,
+  IFinalizeLoginParams,
   IWeb3Auth,
   LoginParams,
-  PasskeyConnectParams,
   PrivateKeyProvider,
   SessionData,
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
-import { ecCurve } from "./utils";
 
 class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   readonly options: Web3AuthOptions;
@@ -49,6 +47,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   public state: SessionData = {};
 
+  public torusPrivKey: string | null = null;
+
   private privKeyProvider: PrivateKeyProvider | null = null;
 
   private chainConfig: Partial<CustomChainConfig> | null = null;
@@ -59,9 +59,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private currentStorage!: BrowserStorage;
 
-  private oAuthKey: string | null = null;
-
   private readonly storageKey = "sfa_store";
+
+  private plugins: Record<string, IPlugin> = {};
 
   constructor(options: Web3AuthOptions) {
     super();
@@ -71,7 +71,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       ...options,
       web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
-      storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
+      storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
     };
 
@@ -102,7 +102,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     }
 
     if (!provider.currentChainConfig || !provider.currentChainConfig.chainNamespace || !provider.currentChainConfig.chainId) {
-      throw WalletInitializationError.invalidParams("provider should have chainConfig and should be intiliazed with chainId and chainNamespace");
+      throw WalletInitializationError.invalidParams("provider should have chainConfig and should be initialized with chainId and chainNamespace");
     }
 
     this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
@@ -116,6 +116,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.privKeyProvider = provider;
     this.chainConfig = this.privKeyProvider.currentChainConfig;
     this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
+
+    if (this.plugins[PASSKEYS_PLUGIN]) {
+      await this.plugins[PASSKEYS_PLUGIN].initWithSfaWeb3auth(this);
+    }
 
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
@@ -133,8 +137,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.currentStorage.set("sessionId", "");
       });
       if (data && data.privKey) {
-        this.oAuthKey = data.privKey;
-        const finalPrivKey = await this._getFinalPrivKey(data.privKey);
+        this.torusPrivKey = data.privKey;
+        const finalPrivKey = await this.getFinalPrivKey(data.privKey);
         await this.privKeyProvider.setupProvider(finalPrivKey);
         this.updateState(data);
         this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
@@ -265,7 +269,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     }
     const { finalKeyData, oAuthKeyData } = retrieveSharesResponse;
     const privKey = finalKeyData.privKey || oAuthKeyData.privKey;
-    this.oAuthKey = privKey;
+    this.torusPrivKey = privKey;
     if (!privKey) throw WalletLoginError.fromCode(5000, "Unable to get private key from torus nodes");
 
     // we are using the original private key so that we can retrieve other keys later on
@@ -284,7 +288,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       typeOfLogin: "jwt",
       oAuthIdToken: idToken,
     };
-    await this.setupProvider(privKey, userInfo);
+    const signatures = this.getSessionSignatures(retrieveSharesResponse.sessionData);
+    await this.finalizeLogin({ privKey, userInfo, signatures });
     return this.provider;
   }
 
@@ -316,124 +321,36 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return this.state.userInfo;
   }
 
-  public async registerPasskey(params: PasskeyConnectParams): Promise<boolean> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
-    if (!this.oAuthKey) throw WalletLoginError.userNotLoggedIn();
+  public addPlugin(plugin: IPlugin): IWeb3Auth {
+    if (this.plugins[plugin.name]) throw new Error(`Plugin ${plugin.name} already exist`);
 
-    // user is logged in.
-    const { verifier, extraVerifierParams } = params;
-    if (!verifier) throw WalletInitializationError.invalidParams("verifier is required");
-    if (!extraVerifierParams) throw WalletInitializationError.invalidParams("extraVerifierParams is required");
-    if (!extraVerifierParams.signature) throw WalletInitializationError.invalidParams("signature is required");
-    if (!extraVerifierParams.clientDataJSON) throw WalletInitializationError.invalidParams("clientDataJSON is required");
-    if (!extraVerifierParams.authenticatorData) throw WalletInitializationError.invalidParams("authenticatorData is required");
-    if (!extraVerifierParams.publicKey) throw WalletInitializationError.invalidParams("publicKey is required");
-    if (!extraVerifierParams.challenge) throw WalletInitializationError.invalidParams("challenge is required");
-    if (!extraVerifierParams.rpId) throw WalletInitializationError.invalidParams("rpId is required");
-    if (!extraVerifierParams.credId) throw WalletInitializationError.invalidParams("credId is required");
-
-    const { signature, clientDataJSON, authenticatorData, publicKey, challenge, rpId, credId } = extraVerifierParams;
-
-    const verifierHash = keccak256(Buffer.from(publicKey, "base64")).slice(2);
-    const verifierId = base64url.fromBase64(Buffer.from(verifierHash, "hex").toString("base64"));
-
-    const loginParams: LoginParams = {
-      verifier,
-      verifierId,
-      idToken: signature,
-      extraVerifierParams: {
-        signature,
-        clientDataJSON,
-        authenticatorData,
-        publicKey,
-        challenge,
-        rpOrigin: window.location.origin,
-        rpId,
-        credId,
-      },
-    };
-
-    try {
-      // get the passkey private key.
-      const passkey = await this.getTorusKey(loginParams);
-
-      // get the deterministic nonce.
-      // Nonce = OAuthKey - Passkey.
-      const nonce = this.getNonce(this.oAuthKey, passkey);
-
-      // save the nonce in the metadata db.
-      // this will throw an error if it fails.
-      await setNonce(this.options.metadataHost, passkey, nonce, this.options.serverTimeOffset);
-
-      // if the nonce is set, then we are good to go.
-      // We set the oAuthUserInfo in the metadata DB.
-      // This will be help us to get the user info when you login with passkey.
-      await saveUserInfo(this.options.metadataHost, this.oAuthKey, this.state.userInfo);
-
-      return true;
-    } catch (error: unknown) {
-      log.error("error while registering passkey", error);
-      throw WalletLoginError.fromCode(5000, "Unable to register passkey, please try again.");
-    }
+    this.plugins[plugin.name] = plugin;
+    return this;
   }
 
-  public async loginWithPasskey(params: PasskeyConnectParams): Promise<SafeEventEmitterProvider> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+  public async finalizeLogin(params: IFinalizeLoginParams) {
+    const { privKey, userInfo, signatures = [], passkeyToken = "" } = params;
+    this.torusPrivKey = privKey;
+    // update the provider with the private key.
+    const finalPrivKey = await this.getFinalPrivKey(privKey);
+    await this.privKeyProvider.setupProvider(finalPrivKey);
 
-    // user is logged in.
-    const { verifier, extraVerifierParams } = params;
-    if (!verifier) throw WalletInitializationError.invalidParams("verifier is required");
-    if (!extraVerifierParams) throw WalletInitializationError.invalidParams("extraVerifierParams is required");
-    if (!extraVerifierParams.signature) throw WalletInitializationError.invalidParams("signature is required");
-    if (!extraVerifierParams.clientDataJSON) throw WalletInitializationError.invalidParams("clientDataJSON is required");
-    if (!extraVerifierParams.authenticatorData) throw WalletInitializationError.invalidParams("authenticatorData is required");
-    if (!extraVerifierParams.publicKey) throw WalletInitializationError.invalidParams("publicKey is required");
-    if (!extraVerifierParams.challenge) throw WalletInitializationError.invalidParams("challenge is required");
-    if (!extraVerifierParams.rpId) throw WalletInitializationError.invalidParams("rpId is required");
-    if (!extraVerifierParams.credId) throw WalletInitializationError.invalidParams("credId is required");
+    // save the data in the session.
+    const sessionId = OpenloginSessionManager.generateRandomSessionKey();
+    this.sessionManager.sessionId = sessionId;
+    await this.sessionManager.createSession({ privKey, userInfo, sessionSignatures: signatures, passkeyToken });
 
-    const { signature, clientDataJSON, authenticatorData, publicKey, challenge, rpId, credId } = extraVerifierParams;
-
-    const verifierHash = keccak256(Buffer.from(publicKey, "base64")).slice(2);
-    const verifierId = base64url.fromBase64(Buffer.from(verifierHash, "hex").toString("base64"));
-    const loginParams: LoginParams = {
-      verifier,
-      verifierId,
-      idToken: signature,
-      extraVerifierParams: {
-        signature,
-        clientDataJSON,
-        authenticatorData,
-        publicKey,
-        challenge,
-        rpId,
-        rpOrigin: window.location.origin,
-        credId,
-      },
-    };
-
-    try {
-      // get the passkey private key.
-      const passkey = await this.getTorusKey(loginParams);
-      const nonce = await getNonce(this.options.metadataHost, passkey, this.options.serverTimeOffset);
-      if (!nonce) throw WalletLoginError.fromCode(5000, "Unable to login with passkey, no passkey found or different passkey selected to login.");
-
-      const privKey = this.getPrivKeyFromNonce(passkey, nonce);
-      // get the oAuthUserInfo from the metadata DB.
-      const userInfo = await getUserInfo(this.options.metadataHost, privKey);
-      await this.setupProvider(privKey, userInfo);
-      return this.provider;
-    } catch (error: unknown) {
-      log.error("error while login with passkey", error);
-      throw WalletLoginError.fromCode(5000, "Unable to login with passkey, please try again.");
-    }
+    // update the local state.
+    this.updateState({ privKey, userInfo, sessionSignatures: signatures, passkeyToken });
+    this.currentStorage.set("sessionId", sessionId);
+    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
   }
 
   private updateState(newState: Partial<SessionData>) {
     this.state = { ...this.state, ...newState };
   }
 
-  private async _getFinalPrivKey(privKey: string) {
+  private async getFinalPrivKey(privKey: string) {
     let finalPrivKey = privKey.padStart(64, "0");
     // get app scoped keys.
     if (this.options.usePnPKey) {
@@ -490,36 +407,15 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       verifier,
       finalVerifierParams,
       finalIdToken,
-      loginParams.extraVerifierParams || {}
+      {}
     );
 
     const postboxKey = Torus.getPostboxKey(retrieveSharesResponse);
     return postboxKey.padStart(64, "0");
   }
 
-  private getNonce(oAuthKey: string, passkey: string): string {
-    return new BN(oAuthKey, "hex").sub(new BN(passkey, "hex")).umod(ecCurve.curve.n).toString("hex", 64);
-  }
-
-  private getPrivKeyFromNonce(passkey: string, nonce: string): string {
-    return new BN(passkey, "hex").add(new BN(nonce, "hex")).umod(ecCurve.curve.n).toString("hex", 64);
-  }
-
-  private async setupProvider(privKey: string, userInfo: OpenloginUserInfo) {
-    this.oAuthKey = privKey;
-    // update the provider with the private key.
-    const finalPrivKey = await this._getFinalPrivKey(privKey);
-    await this.privKeyProvider.setupProvider(finalPrivKey);
-
-    // save the data in the session.
-    const sessionId = OpenloginSessionManager.generateRandomSessionKey();
-    this.sessionManager.sessionId = sessionId;
-    await this.sessionManager.createSession({ privKey, userInfo });
-
-    // update the local state.
-    this.updateState({ privKey, userInfo });
-    this.currentStorage.set("sessionId", sessionId);
-    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
+  private getSessionSignatures(sessionData: TorusKey["sessionData"]): string[] {
+    return sessionData.sessionTokenData.filter((i) => Boolean(i)).map((session) => JSON.stringify({ data: session.token, sig: session.signature }));
   }
 }
 

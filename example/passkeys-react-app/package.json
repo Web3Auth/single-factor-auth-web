@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@simplewebauthn/browser": "^9.0.1",
-    "@simplewebauthn/types": "^9.0.1",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
@@ -15,6 +13,7 @@
     "@web3auth/base": "^7.2.0",
     "@web3auth/ethereum-provider": "^7.2.0",
     "@web3auth/single-factor-auth": "../../",
+    "@web3auth/passkeys-plugin": "../../../passkeys-plugin",
     "ethers": "^6.9.0",
     "firebase": "^10.7.0",
     "react": "^18.2.0",

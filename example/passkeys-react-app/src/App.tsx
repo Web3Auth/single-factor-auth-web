@@ -17,7 +17,8 @@ import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "fi
 import Loading from "./Loading";
 import "./App.css";
 import { IProvider } from "@web3auth/base";
-import PasskeyService from "./Passkey";
+import { PasskeysPlugin } from "@web3auth/passkeys-plugin";
+
 
 const verifier = "web3auth-firebase-examples";
 (window as any).base64url = base64url;
@@ -48,7 +49,8 @@ function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [usesSfaSDK, setUsesSfaSDK] = useState(false);
   const [provider, setProvider] = useState<IProvider | null>(null);
-  const [veriferId, setVerifierId] = useState<string | null>(null);
+  // const [veriferId, setVerifierId] = useState<string | null>(null);
+  const [passkeyPlugin, setPasskeyPlugin] = useState<PasskeysPlugin | null>(null);
   // const [idToken, setIdToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const app = initializeApp(firebaseConfig);
@@ -70,7 +72,7 @@ function App() {
           setUsesSfaSDK(true);
           const userInfo = await web3authSfa?.getUserInfo()
           console.log("userinfo", userInfo)
-          setVerifierId(userInfo?.verifierId as string)
+          // setVerifierId(userInfo?.verifierId as string)
         });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
           console.log("sfa:disconnected");
@@ -78,8 +80,11 @@ function App() {
         });
         setWeb3authSFAuth(web3authSfa);
         const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
+        const plugin = new PasskeysPlugin({ buildEnv: "local", metadataHost: "https://metadata-testing.tor.us" });
+        web3authSfa.addPlugin(plugin);
+        setPasskeyPlugin(plugin);
+
         await web3authSfa.init(provider);
-        (window as any).web3auth = web3authSfa;
       } catch (error) {
         console.error(error);
       }
@@ -127,7 +132,7 @@ function App() {
       }
       // get sub value from firebase id token
       const { sub } = parseToken(token);
-      setVerifierId(sub);
+      // setVerifierId(sub);
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
         verifierId: sub,
@@ -267,52 +272,22 @@ function App() {
   };
 
   const registerPasskey = async () => { 
-    const svc = new PasskeyService({
-      web3authClientId: clientId,
-      oAuthVerifier: verifier,
-      oAuthVerifierId: veriferId as string,
-    });
-    const result = await svc.registerUser();
-    if (!result) throw new Error("Attempt to register passkey failed.");
+    if (!passkeyPlugin) throw new Error("Passkey plugin not initialized");
 
-    const loginResult = await svc.loginUser();
-    if (!loginResult) throw new Error("Attempt to verify passkey failed");
-
-    await web3authSFAuth?.registerPasskey({
-      verifier: 'w3a-passkey-devnet',
-      extraVerifierParams: {
-        signature: loginResult.authenticationResponse.response.signature,
-        clientDataJSON: loginResult.authenticationResponse.response.clientDataJSON,
-        authenticatorData: loginResult.authenticationResponse.response.authenticatorData,
-        publicKey: loginResult.data.credential_public_key,
-        challenge: loginResult.data.challenge_timestamp,
-        rpId: loginResult.rpID,
-        credId: loginResult.authenticationResponse.id,
-      }
-    })
+    await passkeyPlugin.registerPasskey({ username: `Passkey - ${new Date(Date.now()).toUTCString()}` });
     uiConsole("Passkey registered successfully");
   }
 
+  const listAllPasskeys = async () => { 
+    if (!passkeyPlugin) throw new Error("Passkey plugin not initialized");
+
+    const result = await passkeyPlugin.listAllPasskeys();
+    uiConsole("Passkey registered successfully", result);
+  }
+
   const loginPasskey = async () => { 
-    const svc = new PasskeyService({
-      web3authClientId: clientId,
-    });
-
-    const loginResult = await svc.loginUser();
-    if (!loginResult) throw new Error("Attempt to verify passkey failed");
-
-    await web3authSFAuth?.loginWithPasskey({
-      verifier: 'w3a-passkey-devnet',
-      extraVerifierParams: {
-        signature: loginResult.authenticationResponse.response.signature,
-        clientDataJSON: loginResult.authenticationResponse.response.clientDataJSON,
-        authenticatorData: loginResult.authenticationResponse.response.authenticatorData,
-        publicKey: loginResult.data.credential_public_key,
-        challenge: loginResult.data.challenge_timestamp,
-        rpId: loginResult.rpID,
-        credId: loginResult.authenticationResponse.id,
-      },
-    })
+    if (!passkeyPlugin) throw new Error("Passkey plugin not initialized");
+    await passkeyPlugin.loginWithPasskey();
     uiConsole("Passkey logged in successfully");
   }
 
@@ -379,6 +354,11 @@ function App() {
         <div>
           <button onClick={registerPasskey} className="card">
            Register Passkey
+          </button>
+        </div>
+        <div>
+          <button onClick={listAllPasskeys} className="card">
+           List All Passkeys
           </button>
         </div>
         <div>

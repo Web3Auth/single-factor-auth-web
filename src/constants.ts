@@ -6,5 +6,4 @@ export const ADAPTER_STATUS = {
   CONNECTED: "connected",
 } as const;
 
-export const PASSKEY_NONCE = "passkey_nonce";
-export const OAUTH_USERINFO = "oauth_userinfo";
+export const PASSKEYS_PLUGIN = "PASSKEYS_PLUGIN";

@@ -1,4 +1,5 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
@@ -91,16 +92,8 @@ export interface Auth0UserInfo {
 export interface SessionData {
   privKey?: string;
   userInfo?: OpenloginUserInfo;
-}
-
-export interface PasskeyExtraVerifierParams extends Record<string, string> {
-  signature: string; // LOGIN
-  clientDataJSON: string; // LOGIN
-  authenticatorData: string; // LOGIN
-  publicKey: string; // REGISTER
-  challenge: string; // LOGIN
-  rpId: string; // LOGIN/REGISTER
-  credId: string; // LOGIN/REGISTER
+  sessionSignatures?: string[];
+  passkeyToken?: string;
 }
 
 export interface LoginParams {
@@ -111,13 +104,6 @@ export interface LoginParams {
   // offset in seconds
   serverTimeOffset?: number;
   fallbackUserInfo?: Partial<Auth0UserInfo>;
-  // mainly used for passkey verifiers.
-  // This are the extra params required for passkey login.
-  extraVerifierParams?: PasskeyExtraVerifierParams;
-}
-
-export interface PasskeyConnectParams extends Pick<LoginParams, "serverTimeOffset" | "verifier"> {
-  extraVerifierParams: PasskeyExtraVerifierParams;
 }
 
 export interface DeletePasskeyParams {
@@ -127,7 +113,9 @@ export interface DeletePasskeyParams {
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
 
-export interface IWeb3Auth {
+export type IFinalizeLoginParams = { privKey: string; userInfo: OpenloginUserInfo; signatures?: string[]; passkeyToken?: string };
+
+export interface IWeb3Auth extends SafeEventEmitter {
   /**
    * @deprecated would be removed in future versions. Use `connected` instead
    */
@@ -136,25 +124,18 @@ export interface IWeb3Auth {
   provider: SafeEventEmitterProvider | null;
   connected: boolean;
   state: SessionData;
+  options: Web3AuthOptions;
+  /**
+   * This may or may not be the actual private key returned by the provider.
+   * Do not use this directly if you are not sure what you are doing.
+   */
+  torusPrivKey: string | null;
   init(provider: PrivateKeyProvider): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
   authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
-  registerPasskey(params: PasskeyConnectParams): Promise<boolean>;
-  loginWithPasskey(params: PasskeyConnectParams): Promise<SafeEventEmitterProvider | null>;
+  finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
 }
-
-export interface MetadataParams {
-  namespace?: string;
-  pub_key_X: string;
-  pub_key_Y: string;
-  set_data: {
-    data: string;
-    timestamp: string;
-  };
-  signature: string;
-}
-
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
