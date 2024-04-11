@@ -1,3 +1,4 @@
+import { signChallenge, verifySignedChallenge } from "@toruslabs/base-controllers";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
@@ -14,12 +15,9 @@ import {
   getSavedToken,
   IProvider,
   saveToken,
-  signChallenge,
-  verifySignedChallenge,
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
-import { jwtDecode } from "jwt-decode";
 
 import {
   ADAPTER_STATUS_TYPE,
@@ -32,6 +30,7 @@ import {
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
+import { decodeToken } from "./utils";
 
 class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   readonly options: Web3AuthOptions;
@@ -64,7 +63,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       ...options,
       web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
-      storageServerUrl: options.storageServerUrl || "https://broadcast-server.tor.us",
+      storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
     };
   }
@@ -305,7 +304,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     // we are using the original private key so that we can retrieve other keys later on
     let decodedUserInfo: Partial<Auth0UserInfo>;
     try {
-      decodedUserInfo = jwtDecode<Auth0UserInfo>(idToken);
+      decodedUserInfo = decodeToken<Auth0UserInfo>(idToken).payload;
     } catch (error) {
       decodedUserInfo = loginParams.fallbackUserInfo;
     }
