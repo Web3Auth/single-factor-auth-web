@@ -59,7 +59,7 @@ export interface Web3AuthOptions {
 
   /**
    * Specify a custom storage server url
-   * @defaultValue https://broadcast-server.tor.us
+   * @defaultValue https://session.web3auth.io
    */
   storageServerUrl?: string;
 
