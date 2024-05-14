@@ -64,12 +64,6 @@ export interface Web3AuthOptions {
   storageServerUrl?: string;
 
   /**
-   * Specify a custom metadata server url
-   * @defaultValue https://metadata.tor.us
-   */
-  metadataHost?: string;
-
-  /**
    * Specify a custom server time offset.
    */
   serverTimeOffset?: number;

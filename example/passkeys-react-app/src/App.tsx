@@ -63,7 +63,6 @@ function App() {
           clientId, // Get your Client ID from Web3Auth Dashboard
           web3AuthNetwork: "sapphire_devnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
-          metadataHost: "https://metadata-testing.tor.us"
         });
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, async (data) => {
           console.log("sfa:connected", data);
@@ -80,7 +79,7 @@ function App() {
         });
         setWeb3authSFAuth(web3authSfa);
         const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-        const plugin = new PasskeysPlugin({ buildEnv: "local", metadataHost: "https://metadata-testing.tor.us" });
+        const plugin = new PasskeysPlugin({ buildEnv: "local" });
         web3authSfa.addPlugin(plugin);
         setPasskeyPlugin(plugin);
 
@@ -274,7 +273,7 @@ function App() {
   const registerPasskey = async () => { 
     if (!passkeyPlugin) throw new Error("Passkey plugin not initialized");
 
-    await passkeyPlugin.registerPasskey({ username: `Passkey - ${new Date(Date.now()).toUTCString()}` });
+    await passkeyPlugin.registerPasskey({  });
     uiConsole("Passkey registered successfully");
   }
 

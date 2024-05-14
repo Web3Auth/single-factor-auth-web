@@ -73,8 +73,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
     };
-
-    // TODO: fix the metadata url.
   }
 
   get sessionId(): string | null {
