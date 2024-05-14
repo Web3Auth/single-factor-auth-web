@@ -18,7 +18,6 @@ import {
   WalletInitializationError,
   WalletLoginError,
 } from "@web3auth/base";
-import { type IPlugin } from "@web3auth/base-plugin";
 
 import { PASSKEYS_PLUGIN } from "./constants";
 import {
@@ -33,6 +32,7 @@ import {
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
+import { IPlugin } from "./plugin";
 import { decodeToken } from "./utils";
 
 class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
@@ -46,7 +46,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   public state: SessionData = {};
 
-  public torusPrivKey: string | null = null;
+  private torusPrivKey: string | null = null;
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
@@ -114,11 +114,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.chainConfig = this.privKeyProvider.currentChainConfig;
     this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
 
-    if (this.plugins[PASSKEYS_PLUGIN]) {
-      // TODO: fix this.
-      await this.plugins[PASSKEYS_PLUGIN].initWithSfaWeb3auth(this);
-    }
-
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
       sessionServerBaseUrl: this.options.storageServerUrl,
@@ -142,6 +137,11 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
       }
     }
+
+    if (this.plugins[PASSKEYS_PLUGIN]) {
+      await this.plugins[PASSKEYS_PLUGIN].initWithSfaWeb3auth(this);
+    }
+
     this.ready = true;
   }
 
@@ -221,19 +221,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     if (!verifier || !verifierId || !idToken) throw WalletInitializationError.invalidParams("verifier or verifierId or idToken  required");
     const verifierDetails = { verifier, verifierId };
 
-    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
 
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
-    }
-
-    if (this.authInstance.isLegacyNetwork) {
-      // does the key assign
-      const pubDetails = await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-
-      if (pubDetails.metadata.upgraded) {
-        throw WalletLoginError.mfaEnabled();
-      }
     }
 
     let finalIdToken = idToken;
@@ -326,6 +317,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return this;
   }
 
+  public getPlugin(name: string): IPlugin | null {
+    return this.plugins[name] || null;
+  }
+
   public async finalizeLogin(params: IFinalizeLoginParams) {
     const { privKey, userInfo, signatures = [], passkeyToken = "" } = params;
     this.torusPrivKey = privKey;
@@ -342,6 +337,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.updateState({ privKey, userInfo, sessionSignatures: signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
+  }
+
+  public _getBasePrivKey() {
+    return this.torusPrivKey;
   }
 
   private updateState(newState: Partial<SessionData>) {
@@ -368,14 +367,11 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     const verifierDetails = { verifier, verifierId };
 
-    const { torusNodeEndpoints, torusNodePub, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
 
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
     }
-
-    // Does the key assign
-    if (this.authInstance.isLegacyNetwork) await this.authInstance.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
 
     let finalIdToken = idToken;
     let finalVerifierParams = { verifier_id: verifierId };

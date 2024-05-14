@@ -4,6 +4,7 @@ import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
 import { ADAPTER_STATUS } from "./constants";
+import { IPlugin } from "./plugin";
 
 export interface TorusSubVerifierInfo {
   verifier: string;
@@ -119,17 +120,15 @@ export interface IWeb3Auth extends SafeEventEmitter {
   connected: boolean;
   state: SessionData;
   options: Web3AuthOptions;
-  /**
-   * This may or may not be the actual private key returned by the provider.
-   * Do not use this directly if you are not sure what you are doing.
-   */
-  torusPrivKey: string | null;
   init(provider: PrivateKeyProvider): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
   authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
+  addPlugin(plugin: IPlugin): void;
+  getPlugin(pluginName: string): IPlugin | null;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
   finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
+  _getBasePrivKey(): string;
 }
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
