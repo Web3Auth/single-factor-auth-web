@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import {  PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
 
 // RPC libraries for blockchain calls
 import RPC from "./evm.web3";
@@ -44,7 +45,7 @@ const firebaseConfig = {
 function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
-  // const [idToken, setIdToken] = useState<string | null>(null);
+  const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const app = initializeApp(firebaseConfig);
 
@@ -54,9 +55,12 @@ function App() {
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
-          web3AuthNetwork: "sapphire_devnet", // ["cyan", "testnet"]
+          web3AuthNetwork: "testnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
+        const plugin = new PasskeysPlugin({ buildEnv: "development" });
+        web3authSfa?.addPlugin(plugin);
+        setPlugin(plugin);
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
           console.log("sfa:connected", data);
           console.log("sfa:state", web3authSfa?.state);
@@ -105,7 +109,7 @@ function App() {
         return;
       }
       // get sub value from firebase id token
-      const { payload } = decodeToken(token);
+      const { payload } = decodeToken<Record<string, string>>(token);
 
       const web3authSfaprovider = await web3authSFAuth.connect({
         verifier,
@@ -125,6 +129,20 @@ function App() {
       console.error(err);
     }
   };
+
+  const loginWithPasskey = async () => {
+    try {
+      setIsLoggingIn(true);
+      if (!plugin) throw new Error("Passkey plugin not initialized");
+      await plugin.loginWithPasskey();
+      uiConsole("Passkey logged in successfully");
+    } catch (error) { 
+      console.error((error as Error).message);
+      uiConsole((error as Error).message)
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
 
   const getUserInfo = async () => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
@@ -239,6 +257,28 @@ function App() {
     uiConsole(privateKey);
   };
 
+  const registerPasskey = async () => {
+    try {
+      if (!plugin) {
+        uiConsole("plugin not initialized yet");
+        return;
+      }
+      const res = await plugin?.registerPasskey();
+      if (res) uiConsole("Passkey saved successfully");
+    } catch (error: unknown) {
+      uiConsole((error as Error).message)
+    }
+  }
+
+  const listAllPasskeys = async () => {
+    if (!plugin) {
+      uiConsole("plugin not initialized yet");
+      return;
+    }
+    const res = await plugin?.listAllPasskeys();
+    uiConsole(res);
+  }
+
   function uiConsole(...args: any[]): void {
     const el = document.querySelector("#console>p");
     if (el) {
@@ -300,22 +340,33 @@ function App() {
           </button>
         </div>
         <div>
+          <button onClick={registerPasskey} className="card">
+            Register passkey
+          </button>
+        </div>
+        <div>
+          <button onClick={listAllPasskeys} className="card">
+            List all Passkeys
+          </button>
+        </div>
+        <div>
           <button onClick={logout} className="card">
             Log Out
           </button>
         </div>
       </div>
-
-      <div id="console" style={{ whiteSpace: "pre-line" }}>
-        <p style={{ whiteSpace: "pre-line" }}></p>
-      </div>
     </>
   );
 
   const logoutView = (
-    <button onClick={login} className="card">
-      Login
-    </button>
+    <>
+      <button onClick={login} className="card">
+        Login
+      </button>
+      <button onClick={loginWithPasskey} className="card">
+        Login with Passkey
+      </button>
+    </>
   );
 
   return (
@@ -328,6 +379,10 @@ function App() {
       </h1>
 
       {isLoggingIn ? <Loading /> : <div className="grid">{web3authSFAuth ? (provider ? loginView : logoutView) : null}</div>}
+
+      <div id="console" style={{ whiteSpace: "pre-line" }}>
+        <p style={{ whiteSpace: "pre-line" }}></p>
+      </div>
 
       <footer className="footer">
         <a
