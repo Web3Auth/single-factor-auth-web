@@ -274,7 +274,8 @@ function App() {
         uiConsole("Browser not supported");
         return;
       }
-      const res = await plugin?.registerPasskey();
+      const userInfo = await web3authSFAuth?.getUserInfo();
+      const res = await plugin?.registerPasskey({ username: `google|${userInfo?.email || userInfo?.name} - ${new Date().toLocaleDateString('en-GB')}`});
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
       uiConsole((error as Error).message)
