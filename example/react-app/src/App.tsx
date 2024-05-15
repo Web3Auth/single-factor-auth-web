@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import {  PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
+import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
 
 // RPC libraries for blockchain calls
 import RPC from "./evm.web3";
@@ -17,7 +17,7 @@ import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "fi
 import Loading from "./Loading";
 import "./App.css";
 import { IProvider } from "@web3auth/base";
-import { browserSupportsWebAuthn } from "./utils";
+import { shouldSupportPasskey } from "./utils";
 
 const verifier = "web3auth-firebase-examples";
 
@@ -135,8 +135,8 @@ function App() {
     try {
       setIsLoggingIn(true);
       if (!plugin) throw new Error("Passkey plugin not initialized");
-      const result = browserSupportsWebAuthn();
-      if (!result) {
+      const result = shouldSupportPasskey();
+      if (!result.isBrowserSupported) {
         uiConsole("Browser not supported");
         return;
       }
@@ -269,8 +269,8 @@ function App() {
         uiConsole("plugin not initialized yet");
         return;
       }
-      const result = browserSupportsWebAuthn();
-      if (!result) {
+      const result = shouldSupportPasskey();
+      if (!result.isBrowserSupported) {
         uiConsole("Browser not supported");
         return;
       }
