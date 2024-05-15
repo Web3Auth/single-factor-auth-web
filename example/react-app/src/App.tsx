@@ -17,7 +17,7 @@ import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "fi
 import Loading from "./Loading";
 import "./App.css";
 import { IProvider } from "@web3auth/base";
-import { shouldSupportPasskey } from "./utils";
+import { browserSupportsWebAuthn } from "./utils";
 
 const verifier = "web3auth-firebase-examples";
 
@@ -135,8 +135,8 @@ function App() {
     try {
       setIsLoggingIn(true);
       if (!plugin) throw new Error("Passkey plugin not initialized");
-      const result = shouldSupportPasskey();
-      if (!result.isBrowserSupported) {
+      const result = browserSupportsWebAuthn();
+      if (!result) {
         uiConsole("Browser not supported");
         return;
       }
@@ -269,8 +269,8 @@ function App() {
         uiConsole("plugin not initialized yet");
         return;
       }
-      const result = shouldSupportPasskey();
-      if (!result.isBrowserSupported) {
+      const result = browserSupportsWebAuthn();
+      if (!result) {
         uiConsole("Browser not supported");
         return;
       }

@@ -58,3 +58,8 @@ export function shouldSupportPasskey(): { isBrowserSupported: boolean; isOsSuppo
   const isBrowserSupported = browser.satisfies({ ...browserData }) || false;
   return { isBrowserSupported, isOsSupported: true, supportedBrowser: browserData[osName] };
 }
+
+export function browserSupportsWebAuthn() {
+  return (window?.PublicKeyCredential !== undefined &&
+      typeof window.PublicKeyCredential === 'function');
+}
