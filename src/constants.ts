@@ -5,3 +5,5 @@ export const ADAPTER_STATUS = {
   READY: "ready",
   CONNECTED: "connected",
 } as const;
+
+export const PASSKEYS_PLUGIN = "PASSKEYS_PLUGIN";

@@ -1,8 +1,10 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
 
 import { ADAPTER_STATUS } from "./constants";
+import { IPlugin } from "./plugin";
 
 export interface TorusSubVerifierInfo {
   verifier: string;
@@ -61,6 +63,11 @@ export interface Web3AuthOptions {
    * @defaultValue https://session.web3auth.io
    */
   storageServerUrl?: string;
+
+  /**
+   * Specify a custom server time offset.
+   */
+  serverTimeOffset?: number;
 }
 
 export type AggregateVerifierParams = {
@@ -80,9 +87,11 @@ export interface Auth0UserInfo {
 export interface SessionData {
   privKey?: string;
   userInfo?: OpenloginUserInfo;
+  sessionSignatures?: string[];
+  passkeyToken?: string;
 }
 
-export type LoginParams = {
+export interface LoginParams {
   verifier: string;
   verifierId: string;
   idToken: string;
@@ -90,11 +99,18 @@ export type LoginParams = {
   // offset in seconds
   serverTimeOffset?: number;
   fallbackUserInfo?: Partial<Auth0UserInfo>;
-};
+}
+
+export interface DeletePasskeyParams {
+  credentialPublicKey?: string;
+  verifier: string;
+}
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
 
-export interface IWeb3Auth {
+export type IFinalizeLoginParams = { privKey: string; userInfo: OpenloginUserInfo; signatures?: string[]; passkeyToken?: string };
+
+export interface IWeb3Auth extends SafeEventEmitter {
   /**
    * @deprecated would be removed in future versions. Use `connected` instead
    */
@@ -103,12 +119,16 @@ export interface IWeb3Auth {
   provider: SafeEventEmitterProvider | null;
   connected: boolean;
   state: SessionData;
+  options: Web3AuthOptions;
   init(provider: PrivateKeyProvider): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
   authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
+  addPlugin(plugin: IPlugin): void;
+  getPlugin(pluginName: string): IPlugin | null;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
+  finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
+  _getBasePrivKey(): string;
 }
-
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
