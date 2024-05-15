@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import {  PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
+import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
 
 // RPC libraries for blockchain calls
 import RPC from "./evm.web3";
@@ -17,6 +17,7 @@ import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "fi
 import Loading from "./Loading";
 import "./App.css";
 import { IProvider } from "@web3auth/base";
+import { shouldSupportPasskey } from "./utils";
 
 const verifier = "web3auth-firebase-examples";
 
@@ -58,7 +59,7 @@ function App() {
           web3AuthNetwork: "testnet", // ["cyan", "testnet"]
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
-        const plugin = new PasskeysPlugin({ buildEnv: "development" });
+        const plugin = new PasskeysPlugin({ buildEnv: "testing" });
         web3authSfa?.addPlugin(plugin);
         setPlugin(plugin);
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
@@ -134,6 +135,11 @@ function App() {
     try {
       setIsLoggingIn(true);
       if (!plugin) throw new Error("Passkey plugin not initialized");
+      const result = shouldSupportPasskey();
+      if (!result.isBrowserSupported) {
+        uiConsole("Browser not supported");
+        return;
+      }
       await plugin.loginWithPasskey();
       uiConsole("Passkey logged in successfully");
     } catch (error) { 
@@ -263,7 +269,13 @@ function App() {
         uiConsole("plugin not initialized yet");
         return;
       }
-      const res = await plugin?.registerPasskey();
+      const result = shouldSupportPasskey();
+      if (!result.isBrowserSupported) {
+        uiConsole("Browser not supported");
+        return;
+      }
+      const userInfo = await web3authSFAuth?.getUserInfo();
+      const res = await plugin?.registerPasskey({ username: `google|${userInfo?.email || userInfo?.name} - ${new Date().toLocaleDateString('en-GB')}`});
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
       uiConsole((error as Error).message)
