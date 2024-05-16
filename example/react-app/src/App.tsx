@@ -20,7 +20,7 @@ import { shouldSupportPasskey } from "./utils";
 
 const verifier = "w3a-sfa-web-google";
 
-const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get from https://dashboard.web3auth.io
+const clientId = "BHr_dKcxC0ecKn_2dZQmQeNdjPgWykMkcodEHkVvPMo71qzOV6SgtoN8KCvFdLN7bf34JOm89vWQMLFmSfIo84A"; // get from https://dashboard.web3auth.io
 
 const chainConfig = {
   chainId: "0xaa36a7",
@@ -45,7 +45,7 @@ function App() {
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
-          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+          web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         const plugin = new PasskeysPlugin({ buildEnv: "testing" });
