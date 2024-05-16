@@ -37,7 +37,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           cd example/react-app
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       # Set the credentials from repository settings/secrets
