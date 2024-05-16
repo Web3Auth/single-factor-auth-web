@@ -2,45 +2,35 @@ import { useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
 import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
-import { CHAIN_NAMESPACES } from "@web3auth/base";
+import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin"
+import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
 
 // RPC libraries for blockchain calls
 import RPC from "./evm.web3";
 // import RPC from "./evm.ethers";
 
-// Firebase libraries for custom authentication
-import { initializeApp } from "firebase/app";
-import { GoogleAuthProvider, getAuth, signInWithPopup, UserCredential } from "firebase/auth";
+// Google OAuth libraries for login and logout
+import { GoogleLogin, CredentialResponse, googleLogout } from "@react-oauth/google";
 
 import Loading from "./Loading";
 import "./App.css";
 import { IProvider } from "@web3auth/base";
 import { shouldSupportPasskey } from "./utils";
 
-const verifier = "web3auth-firebase-examples";
+const verifier = "w3a-sfa-web-google";
 
-const clientId = "BEglQSgt4cUWcj6SKRdu5QkOXTsePmMcusG5EAoyjyOYKlVRjIF1iCNnMOTfpzCiunHRrMui8TIwQPXdkQ8Yxuk"; // get from https://dashboard.web3auth.io
+const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get from https://dashboard.web3auth.io
 
 const chainConfig = {
+  chainId: "0xaa36a7",
+  displayName: "Ethereum Sepolia Testnet",
   chainNamespace: CHAIN_NAMESPACES.EIP155,
-  chainId: "0x1",
-  rpcTarget: "https://rpc.ankr.com/eth",
-  displayName: "ETH Mainnet",
-  blockExplorer: "https://etherscan.io",
-  ticker: "ETH",
   tickerName: "Ethereum",
-};
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyB0nd9YsPLu-tpdCrsXn8wgsWVAiYEpQ_E",
-  authDomain: "web3auth-oauth-logins.firebaseapp.com",
-  projectId: "web3auth-oauth-logins",
-  storageBucket: "web3auth-oauth-logins.appspot.com",
-  messagingSenderId: "461819774167",
-  appId: "1:461819774167:web:e74addfb6cc88f3b5b9c92",
+  ticker: "ETH",
+  decimals: 18,
+  rpcTarget: "https://rpc.ankr.com/eth_sepolia",
+  blockExplorerUrl: "https://sepolia.etherscan.io",
 };
 
 function App() {
@@ -48,7 +38,6 @@ function App() {
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const app = initializeApp(firebaseConfig);
 
   useEffect(() => {
     const init = async () => {
@@ -56,7 +45,7 @@ function App() {
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
-          web3AuthNetwork: "testnet", // ["cyan", "testnet"]
+          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
         });
         const plugin = new PasskeysPlugin({ buildEnv: "testing" });
@@ -83,45 +72,25 @@ function App() {
     init();
   }, []);
 
-  const signInWithGoogle = async (): Promise<UserCredential> => {
-    try {
-      const auth = getAuth(app);
-      const googleProvider = new GoogleAuthProvider();
-      const res = await signInWithPopup(auth, googleProvider);
-      return res;
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  };
-
-  const login = async () => {
-    setIsLoggingIn(true);
-    // login with firebase
-    const loginRes = await signInWithGoogle();
-    // get the id token from firebase
-    const token = await loginRes.user.getIdToken(true);
-    // setIdToken(token);
-
-    // trying logging in with the Single Factor Auth SDK
+  const onSuccess = async (response: CredentialResponse) => {
     try {
       if (!web3authSFAuth) {
         uiConsole("Web3Auth Single Factor Auth SDK not initialized yet");
         return;
       }
-      // get sub value from firebase id token
-      const { payload } = decodeToken<Record<string, string>>(token);
-
-      const web3authSfaprovider = await web3authSFAuth.connect({
-        verifier,
-        verifierId: payload.sub,
-        idToken: token,
-      });
-      if (web3authSfaprovider) {
-        setProvider(web3authSfaprovider);
-        const privKey = await web3authSfaprovider?.request({ method: "eth_private_key" });
-        console.log(privKey);
+      setIsLoggingIn(true);
+      const idToken = response.credential;
+      console.log(idToken);
+      if (!idToken) {
+        setIsLoggingIn(false);
+        return;
       }
+      const { payload } = decodeToken(idToken);
+      await web3authSFAuth.connect({
+        verifier,
+        verifierId: (payload as any).email,
+        idToken: idToken!,
+      });
       setIsLoggingIn(false);
     } catch (err) {
       // Single Factor Auth SDK throws an error if the user has already enabled MFA
@@ -142,13 +111,13 @@ function App() {
       }
       await plugin.loginWithPasskey();
       uiConsole("Passkey logged in successfully");
-    } catch (error) { 
+    } catch (error) {
       console.error((error as Error).message);
-      uiConsole((error as Error).message)
+      uiConsole((error as Error).message);
     } finally {
       setIsLoggingIn(false);
     }
-  }
+  };
 
   const getUserInfo = async () => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
@@ -172,14 +141,14 @@ function App() {
       return;
     }
     const newChain = {
-      chainId: "0x5",
-      displayName: "Goerli Testnet",
       chainNamespace: CHAIN_NAMESPACES.EIP155,
-      tickerName: "Ethereum",
-      ticker: "ETH",
+      chainId: "0x13882", // hex of 80002, polygon testnet
+      rpcTarget: "https://rpc.ankr.com/polygon_amoy",
+      displayName: "Polygon Amoy Testnet",
+      ticker: "MATIC",
+      tickerName: "MATIC",
       decimals: 18,
-      rpcTarget: "https://rpc.ankr.com/eth_goerli/",
-      blockExplorer: "https://goerli.etherscan.io",
+      blockExplorerUrl: "https://amoy.polygonscan.com/",
     };
     await web3authSFAuth?.addChain(newChain);
     uiConsole("New Chain Added");
@@ -198,9 +167,11 @@ function App() {
     if (!web3authSFAuth) {
       throw new Error("web3auth sfa auth not initialized.");
     }
+    googleLogout();
     await web3authSFAuth.logout();
     const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
     await web3authSFAuth.init(provider);
+    uiConsole("Logged out");
     return;
   };
 
@@ -275,12 +246,14 @@ function App() {
         return;
       }
       const userInfo = await web3authSFAuth?.getUserInfo();
-      const res = await plugin?.registerPasskey({ username: `google|${userInfo?.email || userInfo?.name} - ${new Date().toLocaleDateString('en-GB')}`});
+      const res = await plugin?.registerPasskey({
+        username: `google|${userInfo?.email || userInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
+      });
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
-      uiConsole((error as Error).message)
+      uiConsole((error as Error).message);
     }
-  }
+  };
 
   const listAllPasskeys = async () => {
     if (!plugin) {
@@ -289,7 +262,7 @@ function App() {
     }
     const res = await plugin?.listAllPasskeys();
     uiConsole(res);
-  }
+  };
 
   function uiConsole(...args: any[]): void {
     const el = document.querySelector("#console>p");
@@ -372,9 +345,9 @@ function App() {
 
   const logoutView = (
     <>
-      <button onClick={login} className="card">
-        Login
-      </button>
+      <>
+        <GoogleLogin onSuccess={onSuccess} useOneTap />
+      </>
       <button onClick={loginWithPasskey} className="card">
         Login with Passkey
       </button>
@@ -387,7 +360,7 @@ function App() {
         <a target="_blank" href="http://web3auth.io/" rel="noreferrer">
           Web3Auth
         </a>{" "}
-        SFA React Example
+        SFA PassKey Demo
       </h1>
 
       {isLoggingIn ? <Loading /> : <div className="grid">{web3authSFAuth ? (provider ? loginView : logoutView) : null}</div>}
