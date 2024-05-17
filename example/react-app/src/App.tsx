@@ -80,7 +80,6 @@ function App() {
       }
       setIsLoggingIn(true);
       const idToken = response.credential;
-      console.log(idToken);
       if (!idToken) {
         setIsLoggingIn(false);
         return;
@@ -159,7 +158,7 @@ function App() {
       uiConsole("provider not initialized yet");
       return;
     }
-    await web3authSFAuth?.switchChain({ chainId: "0x5" });
+    await web3authSFAuth?.switchChain({ chainId: "0x13882" });
     uiConsole("Chain Switched");
   };
 
