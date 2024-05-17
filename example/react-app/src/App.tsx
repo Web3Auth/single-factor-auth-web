@@ -80,7 +80,6 @@ function App() {
       }
       setIsLoggingIn(true);
       const idToken = response.credential;
-      console.log(idToken);
       if (!idToken) {
         setIsLoggingIn(false);
         return;
@@ -159,7 +158,7 @@ function App() {
       uiConsole("provider not initialized yet");
       return;
     }
-    await web3authSFAuth?.switchChain({ chainId: "0x5" });
+    await web3authSFAuth?.switchChain({ chainId: "0x13882" });
     uiConsole("Chain Switched");
   };
 
@@ -348,9 +347,19 @@ function App() {
       <>
         <GoogleLogin onSuccess={onSuccess} useOneTap />
       </>
-      <button onClick={loginWithPasskey} className="card">
+      <button onClick={loginWithPasskey} className="card passkey">
         Login with Passkey
       </button>
+      <>
+        <div className="flex-container text">
+          <p>Steps:</p>
+          <ol>
+            <li>Click on the Sign in with Google or use Google One Tap</li>
+            <li>Once logged in, Register the Passkey, then logout</li>
+            <li>Click on the "Login with Passkey" button to experience the Passkey login.</li>
+          </ol>
+        </div>
+      </>
     </>
   );
 
