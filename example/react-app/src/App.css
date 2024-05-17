@@ -52,6 +52,13 @@
   background-color: #f1f1f1;
 }
 
+.passkey{
+  max-width: 400px;
+  min-width: 200px;
+  height: 38px;
+  width: 248px;
+}
+
 .footer {
   display: flex;
   flex: 1;
@@ -91,6 +98,11 @@
   text-align: center;
   line-height: 75px;
   font-size: 30px;
+}
+
+.text{
+  font-size: 12px;
+  font-weight: 600;
 }
 
 #console {

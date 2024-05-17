@@ -347,9 +347,19 @@ function App() {
       <>
         <GoogleLogin onSuccess={onSuccess} useOneTap />
       </>
-      <button onClick={loginWithPasskey} className="card">
+      <button onClick={loginWithPasskey} className="card passkey">
         Login with Passkey
       </button>
+      <>
+        <div className="flex-container text">
+          <p>Steps:</p>
+          <ol>
+            <li>Click on the Sign in with Google or use Google One Tap</li>
+            <li>Once logged in, Register the Passkey, then logout</li>
+            <li>Click on the "Login with Passkey" button to experience the Passkey login.</li>
+          </ol>
+        </div>
+      </>
     </>
   );
 
