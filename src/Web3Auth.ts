@@ -13,10 +13,14 @@ import {
   checkIfTokenIsExpired,
   CustomChainConfig,
   getSavedToken,
+  IPlugin,
   IProvider,
+  log,
   saveToken,
+  WALLET_ADAPTERS,
   WalletInitializationError,
   WalletLoginError,
+  Web3AuthError,
 } from "@web3auth/base";
 
 import { PASSKEYS_PLUGIN } from "./constants";
@@ -32,11 +36,12 @@ import {
   UserAuthInfo,
   Web3AuthOptions,
 } from "./interface";
-import { IPlugin } from "./plugin";
 import { decodeToken } from "./utils";
 
 class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
-  readonly options: Web3AuthOptions;
+  readonly coreOptions: Web3AuthOptions;
+
+  readonly connectedAdapterName = WALLET_ADAPTERS.SFA;
 
   public ready = false;
 
@@ -58,33 +63,38 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private currentStorage!: BrowserStorage;
 
-  private readonly storageKey = "sfa_store";
+  private readonly baseStorageKey = "sfa_store";
+
+  private readonly sessionNamespace = "sfa";
 
   private plugins: Record<string, IPlugin> = {};
 
   constructor(options: Web3AuthOptions) {
     super();
     if (!options.clientId) throw WalletInitializationError.invalidParams("Please provide a valid clientId in constructor");
+    if (!options.privateKeyProvider) throw WalletInitializationError.invalidParams("Please provide a valid privateKeyProvider in constructor");
 
-    this.options = {
+    this.coreOptions = {
       ...options,
       web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
+      chainConfig: options.privateKeyProvider.currentChainConfig,
     };
-  }
 
-  get sessionId(): string | null {
-    return (this.sessionManager && this.sessionManager.sessionId) || null;
+    this.privKeyProvider = options.privateKeyProvider;
   }
 
   get connected(): boolean {
-    return Boolean(this.sessionId);
+    return Boolean(this.sessionManager?.sessionId);
   }
 
   get provider(): IProvider | null {
-    return this.privKeyProvider || null;
+    if (this.status !== ADAPTER_STATUS.NOT_READY && this.privKeyProvider) {
+      return this.privKeyProvider;
+    }
+    return null;
   }
 
   get status(): ADAPTER_STATUS_TYPE {
@@ -93,33 +103,34 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return ADAPTER_STATUS.NOT_READY;
   }
 
-  async init(provider: PrivateKeyProvider): Promise<void> {
-    if (!provider) {
-      throw WalletInitializationError.invalidParams("provider is required");
-    }
-
-    if (!provider.currentChainConfig || !provider.currentChainConfig.chainNamespace || !provider.currentChainConfig.chainId) {
+  async init(): Promise<void> {
+    if (
+      !this.privKeyProvider.currentChainConfig ||
+      !this.privKeyProvider.currentChainConfig.chainNamespace ||
+      !this.privKeyProvider.currentChainConfig.chainId
+    ) {
       throw WalletInitializationError.invalidParams("provider should have chainConfig and should be initialized with chainId and chainNamespace");
     }
-
-    this.currentStorage = BrowserStorage.getInstance(this.storageKey, this.options.storageKey);
-    this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.options.web3AuthNetwork });
-    this.authInstance = new Torus({
-      clientId: this.options.clientId,
-      enableOneKey: true,
-      network: this.options.web3AuthNetwork,
-    });
-
-    this.privKeyProvider = provider;
     this.chainConfig = this.privKeyProvider.currentChainConfig;
     this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
 
+    const storageKey = `${this.baseStorageKey}_${this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
+    this.currentStorage = BrowserStorage.getInstance(storageKey, this.coreOptions.storageKey);
+    this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.coreOptions.web3AuthNetwork });
+    this.authInstance = new Torus({
+      clientId: this.coreOptions.clientId,
+      enableOneKey: true,
+      network: this.coreOptions.web3AuthNetwork,
+    });
+
     const sessionId = this.currentStorage.get<string>("sessionId");
     this.sessionManager = new OpenloginSessionManager({
-      sessionServerBaseUrl: this.options.storageServerUrl,
-      sessionTime: this.options.sessionTime,
+      sessionServerBaseUrl: this.coreOptions.storageServerUrl,
+      sessionTime: this.coreOptions.sessionTime,
+      sessionNamespace: this.sessionNamespace,
       sessionId,
     });
+    this.subscribeToEvents();
 
     // if sessionId exists in storage, then try to rehydrate session.
     if (sessionId) {
@@ -139,14 +150,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     }
 
     if (this.plugins[PASSKEYS_PLUGIN]) {
-      await this.plugins[PASSKEYS_PLUGIN].initWithSfaWeb3auth(this);
+      await this.plugins[PASSKEYS_PLUGIN].initWithWeb3Auth(this);
     }
-
     this.ready = true;
   }
 
   async authenticateUser(): Promise<UserAuthInfo> {
     if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (!this.connected) throw WalletLoginError.notConnectedError();
+    const { userInfo } = this.state;
+    if (userInfo?.idToken) return { idToken: userInfo.idToken };
+
     const { chainNamespace, chainId } = this.chainConfig || {};
     if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw new Error("Please call init first");
     const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
@@ -182,10 +196,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         chainNamespace,
         signedMessage as string,
         challenge,
-        "SFA",
-        this.options.sessionTime,
-        this.options.clientId,
-        this.options.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
+        "https://authjs.web3auth.io/jwks",
+        this.coreOptions.sessionTime,
+        this.coreOptions.clientId,
+        this.coreOptions.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
       );
       saveToken(accounts[0] as string, "SFA", idToken);
       return {
@@ -289,7 +303,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
     await this.sessionManager.invalidateSession();
     this.currentStorage.set("sessionId", "");
-    this.emit(ADAPTER_EVENTS.DISCONNECTED);
     this.updateState({
       privKey: "",
       userInfo: {
@@ -301,12 +314,11 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         typeOfLogin: "",
       },
     });
-    this.privKeyProvider = null;
-    this.ready = false;
+    this.emit(ADAPTER_EVENTS.DISCONNECTED);
   }
 
   public async getUserInfo(): Promise<OpenloginUserInfo> {
-    if (!this.sessionId) throw WalletLoginError.userNotLoggedIn();
+    if (!this.connected) throw WalletLoginError.userNotLoggedIn();
     return this.state.userInfo;
   }
 
@@ -331,10 +343,18 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     // save the data in the session.
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
-    await this.sessionManager.createSession({ privKey, userInfo, sessionSignatures: signatures, passkeyToken });
+
+    // add idToken in user info.
+    // NOTE - the order in which we are adding the idToken is important.
+    const idToken = await this.authenticateUser();
+    if (idToken) {
+      userInfo.idToken = idToken.idToken;
+    }
+
+    await this.sessionManager.createSession({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
 
     // update the local state.
-    this.updateState({ privKey, userInfo, sessionSignatures: signatures, passkeyToken });
+    this.updateState({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
   }
@@ -350,8 +370,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   private async getFinalPrivKey(privKey: string) {
     let finalPrivKey = privKey.padStart(64, "0");
     // get app scoped keys.
-    if (this.options.usePnPKey) {
-      const pnpPrivKey = subkey(finalPrivKey, Buffer.from(this.options.clientId, "base64"));
+    if (this.coreOptions.usePnPKey) {
+      const pnpPrivKey = subkey(finalPrivKey, Buffer.from(this.coreOptions.clientId, "base64"));
       finalPrivKey = pnpPrivKey.padStart(64, "0");
     }
     if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA) {
@@ -410,6 +430,45 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private getSessionSignatures(sessionData: TorusKey["sessionData"]): string[] {
     return sessionData.sessionTokenData.filter((i) => Boolean(i)).map((session) => JSON.stringify({ data: session.token, sig: session.signature }));
+  }
+
+  private subscribeToEvents() {
+    this.on(ADAPTER_EVENTS.CONNECTED, async () => {
+      const localPlugins = Object.values(this.plugins).filter((plugin) => plugin.name !== PASSKEYS_PLUGIN);
+      localPlugins.forEach(async (plugin) => {
+        try {
+          if (!plugin.SUPPORTED_ADAPTERS.includes(WALLET_ADAPTERS.SFA)) {
+            return;
+          }
+          await plugin.initWithWeb3Auth(this);
+          await plugin.connect({ sessionId: this.sessionManager.sessionId, sessionNamespace: this.sessionNamespace });
+        } catch (error: unknown) {
+          // swallow error if connector adapter doesn't supports this plugin.
+          if ((error as Web3AuthError).code === 5211) {
+            return;
+          }
+          log.error(error);
+        }
+      });
+    });
+
+    this.on(ADAPTER_EVENTS.DISCONNECTED, async () => {
+      const localPlugins = Object.values(this.plugins).filter((plugin) => plugin.name !== PASSKEYS_PLUGIN);
+      localPlugins.forEach(async (plugin) => {
+        try {
+          if (!plugin.SUPPORTED_ADAPTERS.includes(WALLET_ADAPTERS.SFA)) {
+            return;
+          }
+          await plugin.disconnect();
+        } catch (error: unknown) {
+          // swallow error if connector adapter doesn't supports this plugin.
+          if ((error as Web3AuthError).code === 5211) {
+            return;
+          }
+          log.error(error);
+        }
+      });
+    });
   }
 }
 
