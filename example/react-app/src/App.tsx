@@ -55,7 +55,12 @@ function App() {
         });
         const plugin = new PasskeysPlugin({ buildEnv: "testing" });
         web3authSfa?.addPlugin(plugin);
-        const wsPlugin = new WalletServicesPlugin();
+        const wsPlugin = new WalletServicesPlugin({ walletInitOptions: { 
+          whiteLabel: {     
+            logoLight: "https://web3auth.io/images/web3auth-logo.svg",
+            logoDark: "https://web3auth.io/images/web3auth-logo.svg",
+          }
+        }});
         web3authSfa?.addPlugin(wsPlugin);
         setWsPlugin(wsPlugin);
         setPlugin(plugin);

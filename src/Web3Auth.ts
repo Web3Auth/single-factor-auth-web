@@ -74,13 +74,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     if (!options.clientId) throw WalletInitializationError.invalidParams("Please provide a valid clientId in constructor");
     if (!options.privateKeyProvider) throw WalletInitializationError.invalidParams("Please provide a valid privateKeyProvider in constructor");
 
+    if (options.chainConfig?.chainId && options.privateKeyProvider.currentChainConfig?.chainId !== options.chainConfig?.chainId) {
+      throw WalletInitializationError.invalidParams("chainId in privateKeyProvider and chainConfig should be same");
+    }
+
     this.coreOptions = {
       ...options,
       web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
-      chainConfig: options.privateKeyProvider.currentChainConfig,
+      chainConfig: options.chainConfig || options.privateKeyProvider.currentChainConfig,
     };
 
     this.privKeyProvider = options.privateKeyProvider;
@@ -343,13 +347,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     // save the data in the session.
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
-
-    // add idToken in user info.
-    // NOTE - the order in which we are adding the idToken is important.
-    const idToken = await this.authenticateUser();
-    if (idToken) {
-      userInfo.idToken = idToken.idToken;
-    }
 
     await this.sessionManager.createSession({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
 

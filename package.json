@@ -36,7 +36,7 @@
     "@babel/runtime": "^7.x"
   },
   "dependencies": {
-    "@toruslabs/base-controllers": "^5.6.0",
+    "@toruslabs/base-controllers": "^5.6.3",
     "@toruslabs/constants": "^13.4.0",
     "@toruslabs/fetch-node-details": "^13.4.0",
     "@toruslabs/openlogin-jrpc": "^8.1.1",
@@ -44,7 +44,7 @@
     "@toruslabs/openlogin-subkey": "^8.1.0",
     "@toruslabs/openlogin-utils": "^8.1.2",
     "@toruslabs/torus.js": "^12.3.5",
-    "@web3auth/base": "^8.6.0-alpha.0"
+    "@web3auth/base": "^8.6.1"
   },
   "devDependencies": {
     "@babel/register": "^7.23.7",
@@ -55,9 +55,9 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20",
-    "@web3auth/base-provider": "^8.4.1",
-    "@web3auth/ethereum-provider": "8.4.1",
-    "@web3auth/solana-provider": "8.4.1",
+    "@web3auth/base-provider": "^8.6.1",
+    "@web3auth/ethereum-provider": "8.6.1",
+    "@web3auth/solana-provider": "8.6.1",
     "chai": "^4.3.10",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
