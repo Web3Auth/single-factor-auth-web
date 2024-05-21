@@ -202,11 +202,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.coreOptions.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
       );
       saveToken(accounts[0] as string, "SFA", idToken);
-      if (this.state.userInfo) {
-        this.state.userInfo.idToken = idToken;
-      } else {
-        this.state.userInfo = { idToken } as OpenloginUserInfo;
-      }
       return {
         idToken,
       };
@@ -319,6 +314,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         typeOfLogin: "",
       },
     });
+    this.status = ADAPTER_STATUS.READY;
     this.emit(ADAPTER_EVENTS.DISCONNECTED);
   }
 
@@ -339,7 +335,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   }
 
   public async _finalizeLogin(params: IFinalizeLoginParams) {
-    const { privKey, userInfo, signatures = [], passkeyToken = "" } = params;
+    const { privKey, signatures = [], passkeyToken = "" } = params;
     this.torusPrivKey = privKey;
     // update the provider with the private key.
     const finalPrivKey = await this.getFinalPrivKey(privKey);
@@ -349,10 +345,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
 
-    await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo, signatures, passkeyToken });
+    const { idToken } = await this.authenticateUser();
+    if (params.userInfo) {
+      params.userInfo.idToken = idToken;
+    } else {
+      params.userInfo = { idToken } as OpenloginUserInfo;
+    }
+
+    await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo: params.userInfo, signatures, passkeyToken });
 
     // update the local state.
-    this.updateState({ privKey: finalPrivKey, basePrivKey: privKey, userInfo, signatures, passkeyToken });
+    this.updateState({ privKey: finalPrivKey, basePrivKey: privKey, userInfo: params.userInfo, signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
     this.status = ADAPTER_STATUS.CONNECTED;
