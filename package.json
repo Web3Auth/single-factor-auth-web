@@ -36,7 +36,7 @@
     "@babel/runtime": "^7.x"
   },
   "dependencies": {
-    "@toruslabs/base-controllers": "^5.6.3",
+    "@toruslabs/base-controllers": "^5.6.5",
     "@toruslabs/constants": "^13.4.0",
     "@toruslabs/fetch-node-details": "^13.4.0",
     "@toruslabs/openlogin-jrpc": "^8.1.1",
