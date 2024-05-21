@@ -9,7 +9,6 @@ import {
   ADAPTER_EVENTS,
   ADAPTER_STATUS,
   CHAIN_NAMESPACES,
-  ChainNamespaceType,
   checkIfTokenIsExpired,
   CustomChainConfig,
   getSavedToken,
@@ -56,10 +55,6 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   private torusPrivKey: string | null = null;
 
   private privKeyProvider: PrivateKeyProvider | null = null;
-
-  private chainConfig: Partial<CustomChainConfig> | null = null;
-
-  private currentChainNamespace: ChainNamespaceType;
 
   private sessionManager!: OpenloginSessionManager<SessionData>;
 
@@ -116,10 +111,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     ) {
       throw WalletInitializationError.invalidParams("provider should have chainConfig and should be initialized with chainId and chainNamespace");
     }
-    this.chainConfig = this.coreOptions.chainConfig;
-    this.currentChainNamespace = this.chainConfig.chainNamespace;
 
-    const storageKey = `${this.baseStorageKey}_${this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
+    const storageKey = `${this.baseStorageKey}_${this.coreOptions.chainConfig.chainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
     this.currentStorage = BrowserStorage.getInstance(storageKey, this.coreOptions.storageKey);
     this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.coreOptions.web3AuthNetwork });
     this.authInstance = new Torus({
@@ -168,7 +161,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const { userInfo } = this.state;
     if (userInfo?.idToken) return { idToken: userInfo.idToken };
 
-    const { chainNamespace, chainId } = this.chainConfig || {};
+    const { chainNamespace, chainId } = this.coreOptions.chainConfig || {};
     if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw WalletInitializationError.notReady();
     const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
       method: "eth_accounts",
@@ -380,7 +373,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       const pnpPrivKey = subkey(finalPrivKey, Buffer.from(this.coreOptions.clientId, "base64"));
       finalPrivKey = pnpPrivKey.padStart(64, "0");
     }
-    if (this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA) {
+    if (this.coreOptions.chainConfig.chainNamespace === CHAIN_NAMESPACES.SOLANA) {
       if (!this.privKeyProvider.getEd25519Key) {
         throw WalletLoginError.fromCode(5000, "Private key provider is not valid, Missing getEd25519Key function");
       }
