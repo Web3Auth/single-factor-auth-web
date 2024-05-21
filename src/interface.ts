@@ -59,6 +59,7 @@ export interface Auth0UserInfo {
 }
 
 export interface SessionData {
+  basePrivKey?: string;
   privKey?: string;
   userInfo?: OpenloginUserInfo;
   signatures?: string[];

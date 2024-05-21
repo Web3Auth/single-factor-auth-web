@@ -103,6 +103,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return null;
   }
 
+  set provider(_: IProvider | null) {
+    throw new Error("Not implemented");
+  }
+
   async init(): Promise<void> {
     if (this.status !== ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Already initialized");
     if (
@@ -112,8 +116,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     ) {
       throw WalletInitializationError.invalidParams("provider should have chainConfig and should be initialized with chainId and chainNamespace");
     }
-    this.chainConfig = this.privKeyProvider.currentChainConfig;
-    this.currentChainNamespace = this.privKeyProvider.currentChainConfig.chainNamespace;
+    this.chainConfig = this.coreOptions.chainConfig;
+    this.currentChainNamespace = this.chainConfig.chainNamespace;
 
     const storageKey = `${this.baseStorageKey}_${this.currentChainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
     this.currentStorage = BrowserStorage.getInstance(storageKey, this.coreOptions.storageKey);
@@ -146,12 +150,11 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.currentStorage.set("sessionId", "");
       });
       if (data && data.privKey) {
-        this.torusPrivKey = data.privKey;
-        const finalPrivKey = await this.getFinalPrivKey(data.privKey);
-        await this.privKeyProvider.setupProvider(finalPrivKey);
+        this.torusPrivKey = data.basePrivKey;
+        await this.privKeyProvider.setupProvider(data.privKey);
         this.updateState(data);
-        this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
         this.status = ADAPTER_STATUS.CONNECTED;
+        this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
       }
     }
     if (!this.state.privKey) {
@@ -353,10 +356,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
 
-    await this.sessionManager.createSession({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
+    await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo, signatures, passkeyToken });
 
     // update the local state.
-    this.updateState({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
+    this.updateState({ privKey: finalPrivKey, basePrivKey: privKey, userInfo, signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
     this.status = ADAPTER_STATUS.CONNECTED;
