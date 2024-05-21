@@ -26,12 +26,13 @@ describe("torus onekey", function () {
         tickerName: "Ethereum",
         chainNamespace: CHAIN_NAMESPACES.EIP155,
       };
+      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
@@ -44,6 +45,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "eth_private_key" });
       expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+      await singleFactorAuth.logout();
     });
 
     it("should get aggregate torus key", async function () {
@@ -61,6 +63,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "eth_private_key" });
       expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
+      await singleFactorAuth.logout();
     });
   });
 
@@ -75,12 +78,13 @@ describe("torus onekey", function () {
         ticker: "SOL",
         tickerName: "Solana",
       };
+      const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
@@ -93,6 +97,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "solanaSecretKey" });
       expect(privKey).to.equal("pyqTNUjYGccdvJDEmLP9aXxurnNTrQsMRupGxC7aiHcTbA7RsUV2zvQX5FBnURWEv5PBsjt3pwR3Et7pGE9BoUB");
+      await singleFactorAuth.logout();
     });
 
     it("should get aggregate torus key", async function () {
@@ -110,6 +115,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "solanaSecretKey" });
       expect(privKey).to.equal("4TwHtc9mgPafrfyodiyZuTtmGY7uxmskEE9ydchr7fkQfu7y2yYQu2y3qJVRixb13W63FoUPh2WNhLwXh68RU7MG");
+      await singleFactorAuth.logout();
     });
   });
 
@@ -124,12 +130,13 @@ describe("torus onekey", function () {
         tickerName: "Ethereum",
         chainNamespace: CHAIN_NAMESPACES.EIP155,
       };
+      const provider = new CommonPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new CommonPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
@@ -142,6 +149,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "private_key" });
       expect(privKey).to.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+      await singleFactorAuth.logout();
     });
 
     it("should get aggregate torus key", async function () {
@@ -159,6 +167,7 @@ describe("torus onekey", function () {
       });
       const privKey = await provider?.request({ method: "private_key" });
       expect(privKey).to.equal("ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2");
+      await singleFactorAuth.logout();
     });
   });
 });

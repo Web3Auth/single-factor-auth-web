@@ -5,6 +5,7 @@ import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-a
 import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
+import { WalletServicesPlugin } from "@web3auth/wallet-services-plugin";
 
 // RPC libraries for blockchain calls
 import RPC from "./evm.web3";
@@ -31,25 +32,37 @@ const chainConfig = {
   decimals: 18,
   rpcTarget: "https://rpc.ankr.com/eth_sepolia",
   blockExplorerUrl: "https://sepolia.etherscan.io",
+  logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
 };
 
 function App() {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
+  const [wsPlugin, setWsPlugin] = useState<WalletServicesPlugin | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
+        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
           web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
+          privateKeyProvider: provider,
         });
         const plugin = new PasskeysPlugin({ buildEnv: "testing" });
         web3authSfa?.addPlugin(plugin);
+        const wsPlugin = new WalletServicesPlugin({ walletInitOptions: { 
+          whiteLabel: {     
+            logoLight: "https://web3auth.io/images/web3auth-logo.svg",
+            logoDark: "https://web3auth.io/images/web3auth-logo.svg",
+          }
+        }});
+        web3authSfa?.addPlugin(wsPlugin);
+        setWsPlugin(wsPlugin);
         setPlugin(plugin);
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
           console.log("sfa:connected", data);
@@ -61,8 +74,7 @@ function App() {
           setProvider(null);
         });
         setWeb3authSFAuth(web3authSfa);
-        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-        await web3authSfa.init(provider);
+        await web3authSfa.init();
         (window as any).web3auth = web3authSfa;
       } catch (error) {
         console.error(error);
@@ -168,8 +180,8 @@ function App() {
     }
     googleLogout();
     await web3authSFAuth.logout();
-    const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-    await web3authSFAuth.init(provider);
+    // const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
+    await web3authSFAuth.init();
     uiConsole("Logged out");
     return;
   };
@@ -263,6 +275,30 @@ function App() {
     uiConsole(res);
   };
 
+  const showCheckout = async () => {
+    if (!wsPlugin) {
+      uiConsole("wallet services plugin not initialized yet");
+      return;
+    }
+    await wsPlugin.showCheckout()
+  }
+
+  const showWalletUI = async () => {
+    if (!wsPlugin) {
+      uiConsole("wallet services plugin not initialized yet");
+      return;
+    }
+    await wsPlugin.showWalletUi()
+  }
+
+  const showWalletScanner = async () => {
+    if (!wsPlugin) {
+      uiConsole("wallet services plugin not initialized yet");
+      return;
+    }
+    await wsPlugin.showWalletConnectScanner()
+  }
+
   function uiConsole(...args: any[]): void {
     const el = document.querySelector("#console>p");
     if (el) {
@@ -331,6 +367,22 @@ function App() {
         <div>
           <button onClick={listAllPasskeys} className="card">
             List all Passkeys
+          </button>
+        </div>
+
+        <div>
+          <button onClick={showCheckout} className="card">
+            Show Checkout
+          </button>
+        </div>
+        <div>
+          <button onClick={showWalletUI} className="card">
+            Show Wallet UI
+          </button>
+        </div>
+        <div>
+          <button onClick={showWalletScanner} className="card">
+            Show Wallet Scanner
           </button>
         </div>
         <div>

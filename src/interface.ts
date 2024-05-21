@@ -1,10 +1,8 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import { CustomChainConfig, type IBaseProvider, SafeEventEmitterProvider } from "@web3auth/base";
+import { CustomChainConfig, type IBaseProvider, IProvider, IWeb3AuthCore, IWeb3AuthCoreOptions, SafeEventEmitterProvider } from "@web3auth/base";
 
 import { ADAPTER_STATUS } from "./constants";
-import { IPlugin } from "./plugin";
 
 export interface TorusSubVerifierInfo {
   verifier: string;
@@ -17,57 +15,33 @@ export type PrivateKeyProvider = IBaseProvider<string> & { getEd25519Key?: (priv
 
 export type UserAuthInfo = { idToken: string };
 
-export interface Web3AuthOptions {
-  /**
-   * Client id for web3auth.
-   * You can obtain your client id from the web3auth developer dashboard.
-   * You can set any random string for this on localhost.
-   */
-  clientId: string;
-  /**
-   * Web3Auth Network to use for login
-   * @defaultValue mainnet
-   */
-  web3AuthNetwork?: TORUS_NETWORK_TYPE;
-
-  /**
-   * setting to true will enable logs
-   *
-   * @defaultValue false
-   */
-  enableLogging?: boolean;
-
+export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" | "useCoreKitKey"> {
   /**
    * setting this to true returns the same key as web sdk (i.e., plug n play key)
    * By default, this sdk returns CoreKitKey
+   *
+   * @defaultValue false
    */
   usePnPKey?: boolean;
 
   /**
-   * How long should a login session last at a minimum in seconds
-   *
-   * @defaultValue 86400 seconds
-   * @remarks Max value of sessionTime can be 7 * 86400 (7 days)
-   */
-  sessionTime?: number;
-
-  /**
-   * setting to "local" will persist social login session accross browser tabs.
-   *
-   * @defaultValue "local"
-   */
-  storageKey?: "session" | "local";
-
-  /**
    * Specify a custom storage server url
+   *
    * @defaultValue https://session.web3auth.io
    */
   storageServerUrl?: string;
 
   /**
    * Specify a custom server time offset.
+   *
+   * @defaultValue 0
    */
   serverTimeOffset?: number;
+
+  /**
+   * Private key provider for your chain namespace
+   */
+  privateKeyProvider: IBaseProvider<string>;
 }
 
 export type AggregateVerifierParams = {
@@ -87,7 +61,7 @@ export interface Auth0UserInfo {
 export interface SessionData {
   privKey?: string;
   userInfo?: OpenloginUserInfo;
-  sessionSignatures?: string[];
+  signatures?: string[];
   passkeyToken?: string;
 }
 
@@ -110,25 +84,18 @@ export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_S
 
 export type IFinalizeLoginParams = { privKey: string; userInfo: OpenloginUserInfo; signatures?: string[]; passkeyToken?: string };
 
-export interface IWeb3Auth extends SafeEventEmitter {
-  /**
-   * @deprecated would be removed in future versions. Use `connected` instead
-   */
-  sessionId: string | null;
+export interface IWeb3Auth extends IWeb3AuthCore {
+  readonly coreOptions: Web3AuthOptions;
   status: ADAPTER_STATUS_TYPE;
-  provider: SafeEventEmitterProvider | null;
+  provider: IProvider | null;
   connected: boolean;
   state: SessionData;
-  options: Web3AuthOptions;
-  init(provider: PrivateKeyProvider): Promise<void>;
+  init(): Promise<void>;
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
-  authenticateUser(): Promise<UserAuthInfo>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
-  addPlugin(plugin: IPlugin): void;
-  getPlugin(pluginName: string): IPlugin | null;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
-  finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
+  _finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
   _getBasePrivKey(): string;
 }
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };
