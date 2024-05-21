@@ -95,7 +95,7 @@ export interface IWeb3Auth extends IWeb3AuthCore {
   addChain(chainConfig: CustomChainConfig): Promise<void>;
   switchChain(params: { chainId: string }): Promise<void>;
   getUserInfo(): Promise<OpenloginUserInfo>;
-  finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
+  _finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
   _getBasePrivKey(): string;
 }
 export { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK };

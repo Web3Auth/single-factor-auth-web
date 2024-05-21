@@ -43,7 +43,9 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   readonly connectedAdapterName = WALLET_ADAPTERS.SFA;
 
-  public ready = false;
+  readonly SFA_ISSUER = "https://authjs.web3auth.io/jwks";
+
+  public status: ADAPTER_STATUS_TYPE = ADAPTER_STATUS.NOT_READY;
 
   public authInstance: Torus | null = null;
 
@@ -101,13 +103,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return null;
   }
 
-  get status(): ADAPTER_STATUS_TYPE {
-    if (this.ready && !this.connected) return ADAPTER_STATUS.READY;
-    if (this.connected) return ADAPTER_STATUS.CONNECTED;
-    return ADAPTER_STATUS.NOT_READY;
-  }
-
   async init(): Promise<void> {
+    if (this.status !== ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Already initialized");
     if (
       !this.privKeyProvider.currentChainConfig ||
       !this.privKeyProvider.currentChainConfig.chainNamespace ||
@@ -136,6 +133,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     });
     this.subscribeToEvents();
 
+    if (this.plugins[PASSKEYS_PLUGIN]) {
+      await this.plugins[PASSKEYS_PLUGIN].initWithWeb3Auth(this);
+    }
+
     // if sessionId exists in storage, then try to rehydrate session.
     if (sessionId) {
       // we are doing this to make sure sessionKey is set
@@ -150,23 +151,22 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         await this.privKeyProvider.setupProvider(finalPrivKey);
         this.updateState(data);
         this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
+        this.status = ADAPTER_STATUS.CONNECTED;
       }
     }
-
-    if (this.plugins[PASSKEYS_PLUGIN]) {
-      await this.plugins[PASSKEYS_PLUGIN].initWithWeb3Auth(this);
+    if (!this.state.privKey) {
+      this.status = ADAPTER_STATUS.READY;
+      this.emit(ADAPTER_EVENTS.READY);
     }
-    this.ready = true;
   }
 
   async authenticateUser(): Promise<UserAuthInfo> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
     if (!this.connected) throw WalletLoginError.notConnectedError();
     const { userInfo } = this.state;
     if (userInfo?.idToken) return { idToken: userInfo.idToken };
 
     const { chainNamespace, chainId } = this.chainConfig || {};
-    if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw new Error("Please call init first");
+    if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw WalletInitializationError.notReady();
     const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
       method: "eth_accounts",
     });
@@ -200,12 +200,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         chainNamespace,
         signedMessage as string,
         challenge,
-        "https://authjs.web3auth.io/jwks",
+        this.SFA_ISSUER,
         this.coreOptions.sessionTime,
         this.coreOptions.clientId,
         this.coreOptions.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
       );
       saveToken(accounts[0] as string, "SFA", idToken);
+      if (this.state.userInfo) {
+        this.state.userInfo.idToken = idToken;
+      } else {
+        this.state.userInfo = { idToken } as OpenloginUserInfo;
+      }
       return {
         idToken,
       };
@@ -213,17 +218,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   }
 
   async addChain(chainConfig: CustomChainConfig): Promise<void> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.addChain(chainConfig);
   }
 
   switchChain(params: { chainId: string }): Promise<void> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.switchChain(params);
   }
 
   async getPostboxKey(loginParams: LoginParams): Promise<string> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.getTorusKey(loginParams);
   }
 
@@ -233,7 +238,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
    * @returns provider to connect
    */
   async connect(loginParams: LoginParams): Promise<IProvider | null> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     if (!verifier || !verifierId || !idToken) throw WalletInitializationError.invalidParams("verifier or verifierId or idToken  required");
@@ -296,12 +301,12 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       oAuthIdToken: idToken,
     };
     const signatures = this.getSessionSignatures(retrieveSharesResponse.sessionData);
-    await this.finalizeLogin({ privKey, userInfo, signatures });
+    await this._finalizeLogin({ privKey, userInfo, signatures });
     return this.provider;
   }
 
   async logout(): Promise<void> {
-    if (!this.ready) throw WalletInitializationError.notReady("Please call init first.");
+    if (!this.connected) throw WalletLoginError.notConnectedError("Not logged in");
     const sessionId = this.currentStorage.get<string>("sessionId");
     if (!sessionId) throw WalletLoginError.fromCode(5000, "User not logged in");
 
@@ -327,7 +332,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   }
 
   public addPlugin(plugin: IPlugin): IWeb3Auth {
-    if (this.plugins[plugin.name]) throw new Error(`Plugin ${plugin.name} already exist`);
+    if (this.plugins[plugin.name]) throw WalletInitializationError.duplicateAdapterError(`Plugin ${plugin.name} already exist`);
 
     this.plugins[plugin.name] = plugin;
     return this;
@@ -337,7 +342,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return this.plugins[name] || null;
   }
 
-  public async finalizeLogin(params: IFinalizeLoginParams) {
+  public async _finalizeLogin(params: IFinalizeLoginParams) {
     const { privKey, userInfo, signatures = [], passkeyToken = "" } = params;
     this.torusPrivKey = privKey;
     // update the provider with the private key.
@@ -354,6 +359,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.updateState({ privKey: finalPrivKey, userInfo, signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
+    this.status = ADAPTER_STATUS.CONNECTED;
   }
 
   public _getBasePrivKey() {
