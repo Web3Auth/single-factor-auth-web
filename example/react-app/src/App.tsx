@@ -180,8 +180,6 @@ function App() {
     }
     googleLogout();
     await web3authSFAuth.logout();
-    // const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-    await web3authSFAuth.init();
     uiConsole("Logged out");
     return;
   };
