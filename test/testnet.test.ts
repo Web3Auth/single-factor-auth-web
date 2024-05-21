@@ -26,12 +26,13 @@ describe("torus onekey", function () {
         tickerName: "Ethereum",
         chainNamespace: CHAIN_NAMESPACES.EIP155,
       };
+      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
@@ -75,12 +76,13 @@ describe("torus onekey", function () {
         ticker: "SOL",
         tickerName: "Solana",
       };
+      const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new SolanaPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
@@ -124,12 +126,13 @@ describe("torus onekey", function () {
         tickerName: "Ethereum",
         chainNamespace: CHAIN_NAMESPACES.EIP155,
       };
+      const provider = new CommonPrivateKeyProvider({ config: { chainConfig } });
       singleFactorAuth = new Web3Auth({
         clientId: "torus",
         web3AuthNetwork: TORUS_LEGACY_NETWORK.TESTNET,
+        privateKeyProvider: provider,
       });
-      const provider = new CommonPrivateKeyProvider({ config: { chainConfig } });
-      await singleFactorAuth.init(provider);
+      await singleFactorAuth.init();
     });
 
     it("should get torus key", async function () {
