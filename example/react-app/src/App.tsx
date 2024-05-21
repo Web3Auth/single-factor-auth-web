@@ -53,12 +53,12 @@ function App() {
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
           privateKeyProvider: provider,
         });
-        // const plugin = new PasskeysPlugin({ buildEnv: "testing" });
-        // web3authSfa?.addPlugin(plugin);
+        const plugin = new PasskeysPlugin({ buildEnv: "testing" });
+        web3authSfa?.addPlugin(plugin);
         const wsPlugin = new WalletServicesPlugin();
         web3authSfa?.addPlugin(wsPlugin);
         setWsPlugin(wsPlugin);
-        // setPlugin(plugin);
+        setPlugin(plugin);
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, (data) => {
           console.log("sfa:connected", data);
           console.log("sfa:state", web3authSfa?.state);

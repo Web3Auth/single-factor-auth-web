@@ -13,7 +13,7 @@
     "@types/react-dom": "^18.3.0",
     "@web3auth/base": "^8.4.1",
     "@web3auth/ethereum-provider": "^8.4.1",
-    "@web3auth/passkeys-sfa-plugin": "^8.0.0",
+    "@web3auth/passkeys-sfa-plugin": "../../../passkeys-plugin",
     "@web3auth/single-factor-auth": "../../",
     "@web3auth/wallet-services-plugin": "../../../web3Auth/packages/plugins/wallet-services-plugin",
     "bowser": "^2.11.0",
