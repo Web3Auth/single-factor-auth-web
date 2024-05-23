@@ -48,7 +48,7 @@ export function shouldSupportPasskey(): { isBrowserSupported: boolean; isOsSuppo
       firefox: ">=122",
     },
     Android: {
-      chrome: ">=121",
+      chrome: ">=108",
     },
     Windows: {
       edge: ">=108",
