@@ -1,4 +1,4 @@
-import { signChallenge, verifySignedChallenge } from "@toruslabs/base-controllers";
+import { ChainNamespaceType, signChallenge, verifySignedChallenge } from "@toruslabs/base-controllers";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
@@ -21,6 +21,7 @@ import {
   WalletLoginError,
   Web3AuthError,
 } from "@web3auth/base";
+import bs58 from "bs58";
 
 import { PASSKEYS_PLUGIN } from "./constants";
 import {
@@ -164,7 +165,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const { chainNamespace, chainId } = this.coreOptions.chainConfig || {};
     if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw WalletInitializationError.notReady();
     const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
-      method: "eth_accounts",
+      method: chainNamespace === CHAIN_NAMESPACES.EIP155 ? "eth_accounts" : "getAccounts",
     });
     if (accounts && accounts.length > 0) {
       const existingToken = getSavedToken(accounts[0] as string, "SFA");
@@ -186,15 +187,10 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
       };
 
       const challenge = await signChallenge(payload, chainNamespace);
-
-      const signedMessage = await this.privKeyProvider.provider.request<string[], string>({
-        method: "personal_sign",
-        params: [challenge, accounts[0]],
-      });
-
+      const signedMessage = await this._getSignedMessage(challenge, accounts, chainNamespace);
       const idToken = await verifySignedChallenge(
         chainNamespace,
-        signedMessage as string,
+        signedMessage,
         challenge,
         this.SFA_ISSUER,
         this.coreOptions.sessionTime,
@@ -345,7 +341,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     const sessionId = OpenloginSessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
 
-    const { idToken } = await this.authenticateUser();
+    const { idToken } = await this.authenticateUser().catch((_) => ({ idToken: "" }));
     if (params.userInfo) {
       params.userInfo.idToken = idToken;
     } else {
@@ -471,6 +467,15 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         }
       });
     });
+  }
+
+  private async _getSignedMessage(challenge: string, accounts: string[], chainNamespace: ChainNamespaceType): Promise<string> {
+    const signedMessage = await this.privKeyProvider.provider.request<string[] | { message: Uint8Array }, string | Uint8Array>({
+      method: chainNamespace === CHAIN_NAMESPACES.EIP155 ? "personal_sign" : "signMessage",
+      params: chainNamespace === CHAIN_NAMESPACES.EIP155 ? [challenge, accounts[0]] : { message: Buffer.from(challenge) },
+    });
+    if (chainNamespace === CHAIN_NAMESPACES.SOLANA) return bs58.encode(signedMessage as Uint8Array);
+    return signedMessage as string;
   }
 }
 
