@@ -205,17 +205,17 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
   }
 
   async addChain(chainConfig: CustomChainConfig): Promise<void> {
-    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status === ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.addChain(chainConfig);
   }
 
   switchChain(params: { chainId: string }): Promise<void> {
-    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status === ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.switchChain(params);
   }
 
   async getPostboxKey(loginParams: LoginParams): Promise<string> {
-    if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
+    if (this.status === ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.getTorusKey(loginParams);
   }
 
