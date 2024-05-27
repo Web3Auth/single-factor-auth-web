@@ -53,6 +53,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "assert": "^2.1.0",
     "buffer": "^6.0.3",
+    "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "process": "^0.11.10",
