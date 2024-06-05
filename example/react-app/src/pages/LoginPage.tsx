@@ -16,15 +16,6 @@ function LoginPage() {
     <Navigate to="/" replace={true} />;
   };
 
-  const onLoginWithPasskey = async () => {
-    try {
-      await loginWithPasskey();
-    } catch (error) {
-      console.error((error as Error).message);
-      toggleGuideModal({ open: true, type: "how" });
-    }
-  };
-
   if (isLoggedIn) {
     return <Navigate to="/" />;
   }
@@ -56,7 +47,7 @@ function LoginPage() {
         <button
           className="flex justify-center rounded-full px-6 h-9 items-center text-white cursor-pointer w-full"
           style={{ backgroundColor: "#0364ff" }}
-          onClick={onLoginWithPasskey}
+          onClick={loginWithPasskey}
         >
           Sign in with Passkey
         </button>

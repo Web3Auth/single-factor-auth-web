@@ -152,7 +152,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       console.log("Passkey logged in successfully");
     } catch (error) {
       console.error((error as Error).message);
-      throw new Error((error as Error).message);
+      toggleGuideModal({ open: true, type: "how" });
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +160,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
 
   const registerPasskey = async () => {
     try {
+      setIsLoading(true);
       if (!plugin) {
         uiConsole("plugin not initialized yet");
         return;
@@ -175,7 +176,9 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       });
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
+      toggleGuideModal({ open: true, type: "how" });
       uiConsole((error as Error).message);
+      setIsLoading(false);
     }
   };
 
