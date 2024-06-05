@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import PasskeyListPage from "./pages/PasskeyListPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import GuideDialog from "./components/GuideDialog";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <main className="min-h-screen flex flex-col">
         <BrowserRouter>
           <Header />
+          <GuideDialog />
           <Routes>
             <Route
               path="/"
