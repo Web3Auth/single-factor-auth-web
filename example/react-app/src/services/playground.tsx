@@ -133,7 +133,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       console.log("Passkey logged in successfully");
     } catch (error) {
       console.error((error as Error).message);
-      console.log((error as Error).message);
+      throw new Error((error as Error).message);
     } finally {
       setIsLoading(false);
     }
