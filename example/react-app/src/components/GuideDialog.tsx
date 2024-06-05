@@ -51,7 +51,6 @@ const DialogModal = () => {
 
   return (
     <>
-      {/* How modal dialog */}
       <Dialog type="modal" closeDialog={() => toggleGuideModal({ open: false })} ref={dialogHowRef}>
         <div className="mb-8">
           <h2 className="text-lg font-semibold">{copyWriting.title}</h2>

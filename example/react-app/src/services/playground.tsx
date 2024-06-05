@@ -27,6 +27,7 @@ export interface IPlaygroundContext {
   hasPasskeys: boolean;
   isGuideModalOpen: boolean;
   guideModalType: ToggleModalData["type"];
+  showRegisterPasskeyModal: boolean;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
@@ -39,6 +40,7 @@ export interface IPlaygroundContext {
   signMessage: () => void;
   sendTransaction: () => void;
   toggleGuideModal: (params: ToggleModalData) => void;
+  toggleRegisterPasskeyModal: () => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -52,6 +54,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   hasPasskeys: false,
   isGuideModalOpen: false,
   guideModalType: "how",
+  showRegisterPasskeyModal: false,
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
@@ -64,6 +67,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   signMessage: async () => null,
   sendTransaction: async () => null,
   toggleGuideModal: async () => null,
+  toggleRegisterPasskeyModal: async () => null,
 });
 
 interface IPlaygroundProps {
@@ -103,6 +107,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [balance, setBalance] = useState<string>("");
   const [chainId, setChainId] = useState<string>("");
   const [hasPasskeys, setHasPasskeys] = useState<boolean>(false);
+  const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
 
   // Dialog
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -129,7 +134,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       setIsLoading(false);
       const res = await plugin?.listAllPasskeys();
       if (res && Object.values(res).length === 0) {
-        await registerPasskey();
+        setShowRegisterPasskeyModal(true);
       }
     } catch (err) {
       // Single Factor Auth SDK throws an error if the user has already enabled MFA
@@ -161,6 +166,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const registerPasskey = async () => {
     try {
       setIsLoading(true);
+      setShowRegisterPasskeyModal(false);
       if (!plugin) {
         uiConsole("plugin not initialized yet");
         return;
@@ -258,6 +264,10 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     setGuideModalType(params.type);
   };
 
+  const toggleRegisterPasskeyModal = () => {
+    setShowRegisterPasskeyModal((prev) => !prev);
+  };
+
   useEffect(() => {
     setIsLoggedIn(!!(provider && web3authSFAuth));
   }, [provider, web3authSFAuth]);
@@ -337,6 +347,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     hasPasskeys,
     isGuideModalOpen,
     guideModalType,
+    showRegisterPasskeyModal,
     onSuccess,
     loginWithPasskey,
     registerPasskey,
@@ -349,6 +360,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     signMessage,
     sendTransaction,
     toggleGuideModal,
+    toggleRegisterPasskeyModal,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
 };

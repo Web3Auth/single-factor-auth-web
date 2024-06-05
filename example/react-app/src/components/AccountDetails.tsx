@@ -58,15 +58,9 @@ function AccountDetails() {
           <button className="rounded-full w-full px-4 py-2 border cursor-pointer" onClick={getUserInfo}>
             View User Info in Console
           </button>
-          {hasPasskeys ? (
-            <button className="rounded-full w-full px-4 py-2 cursor-pointer text-white bg-[#0364ff]" onClick={listAllPasskeys}>
-              Show all passkeys
-            </button>
-          ) : (
-            <button className="rounded-full w-full px-4 py-2 cursor-pointer text-white bg-[#0364ff]" onClick={registerPasskey}>
-              Register passkey
-            </button>
-          )}
+          <button className="rounded-full w-full px-4 py-2 cursor-pointer text-white bg-[#0364ff]" onClick={registerPasskey}>
+            {hasPasskeys ? "Add another passkey" : "Register passkey"}
+          </button>
         </div>
       </div>
       <div className="p-8 mt-6 mb-0 rounded-lg bg-white flex flex-row justify-between flex-wrap">
