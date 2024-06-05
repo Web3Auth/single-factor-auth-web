@@ -120,7 +120,26 @@ body {
   font-weight: 500;
 }
 
-dialog:modal {
-  top: 0;
-  position: absolute;
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+dialog {
+  opacity: 0;
+}
+
+dialog[open] {
+  opacity: 1;
+  animation: fade-in 0.2s ease-in-out;
+}
+
+dialog[open]::backdrop {
+  opacity: 1;
+  animation: fade-in 0.2s ease-in-out;
 }
