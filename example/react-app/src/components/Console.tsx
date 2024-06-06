@@ -1,5 +1,3 @@
-import React from "react";
-
 import { usePlayground } from "../services/playground";
 
 const Console = () => {

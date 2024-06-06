@@ -1,4 +1,3 @@
-import React from "react";
 import { usePlayground } from "../services/playground";
 
 function PasskeyList() {

@@ -1,4 +1,3 @@
-import React from "react";
 import Sidebar from "../components/Sidebar";
 import Console from "../components/Console";
 import { usePlayground } from "../services/playground";

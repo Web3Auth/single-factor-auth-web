@@ -1,6 +1,6 @@
 import { CHAIN_NAMESPACES, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 // Import Single Factor Auth SDK for no redirect flow
 import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
@@ -151,11 +151,11 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       if (!plugin) throw new Error("Passkey plugin not initialized");
       const result = shouldSupportPasskey();
       if (!result.isBrowserSupported) {
-        console.log("Browser not supported");
+        uiConsole("Browser not supported");
         return;
       }
       await plugin.loginWithPasskey();
-      console.log("Passkey logged in successfully");
+      uiConsole("Passkey logged in successfully");
     } catch (error) {
       console.error((error as Error).message);
       toggleGuideModal({ open: true, type: "how" });

@@ -1,4 +1,3 @@
-import React from "react";
 import web3authLogoBlue from "../assets/web3authLogoBlue.svg";
 import { usePlayground } from "../services/playground";
 

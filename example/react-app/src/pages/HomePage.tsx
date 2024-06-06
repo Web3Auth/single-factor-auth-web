@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import AccountDetails from "../components/AccountDetails";
 import Console from "../components/Console";
@@ -18,7 +18,7 @@ function HomePage() {
   }
 
   useEffect(() => {
-    toggleDialog(showRegisterPasskeyModal)
+    toggleDialog(showRegisterPasskeyModal);
   }, [showRegisterPasskeyModal]);
 
   return isLoading ? (

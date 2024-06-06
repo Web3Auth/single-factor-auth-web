@@ -1,4 +1,3 @@
-import React from "react";
 import web3authLogo from "../assets/web3authLogoBlue.svg";
 
 const Loader = () => {

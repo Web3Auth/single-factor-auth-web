@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
@@ -13,7 +12,7 @@ const Sidebar = () => {
     navigate("/transactions");
   }
   function goToSourceCode() {
-    window.open("https://github.com/Web3Auth/single-factor-auth-web/tree/master/example/react-app");
+    window.open("https://github.com/Web3Auth/single-factor-auth-web/tree/master/example/react-app", "_blank", "noreferrer noopener");
   }
   const location = useLocation();
   function linktoGo(label: string, path: any, id: number) {

@@ -1,5 +1,5 @@
 import Hamburger from "hamburger-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayground } from "../services/playground";
 
@@ -17,7 +17,7 @@ function getWindowDimensions() {
 
 const Header = () => {
   const [windowDimensions, setWindowDimensions] = useState(getWindowDimensions());
-
+  console.log(windowDimensions);
   const { isLoggedIn } = usePlayground();
 
   const navigate = useNavigate();

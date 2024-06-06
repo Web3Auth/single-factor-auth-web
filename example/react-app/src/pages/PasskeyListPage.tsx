@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import Sidebar from "../components/Sidebar";
 import Console from "../components/Console";
 import { usePlayground } from "../services/playground";
