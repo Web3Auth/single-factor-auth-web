@@ -33,7 +33,7 @@ export default class EthereumRpc {
       const web3 = new Web3(this.provider as any);
       const accounts = await web3.eth.getAccounts();
       const balance = web3.utils.fromWei(await web3.eth.getBalance(accounts[0]), "ether");
-      return balance.toString();
+      return parseFloat(balance).toString();
     } catch (error) {
       return error as string;
     }

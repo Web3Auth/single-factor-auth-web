@@ -8,7 +8,7 @@ import Dialog from "../components/Dialog";
 
 function HomePage() {
   const dialogHowRef = useRef<HTMLDialogElement>(null);
-  const { isLoading, showRegisterPasskeyModal, registerPasskey } = usePlayground();
+  const { isLoading, showRegisterPasskeyModal, registerPasskey, toggleRegisterPasskeyModal } = usePlayground();
 
   function toggleDialog(open: boolean) {
     if (!dialogHowRef.current) {
@@ -18,9 +18,7 @@ function HomePage() {
   }
 
   useEffect(() => {
-    if (showRegisterPasskeyModal) {
-      toggleDialog(true);
-    }
+    toggleDialog(showRegisterPasskeyModal)
   }, [showRegisterPasskeyModal]);
 
   return isLoading ? (
@@ -34,7 +32,7 @@ function HomePage() {
           <Console />
         </div>
       </div>
-      <Dialog type="modal" closeDialog={() => toggleDialog(false)} ref={dialogHowRef}>
+      <Dialog type="modal" closeDialog={() => toggleRegisterPasskeyModal()} ref={dialogHowRef}>
         <div className="text-center mt-2">
           <img className="mx-auto mb-b" src="https://images.web3auth.io/passkey-register.svg" alt="Register Passkey" />
           <div className="font-bold mb-2 text-gray-900">Register Passkey</div>

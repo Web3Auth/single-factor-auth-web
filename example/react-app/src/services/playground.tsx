@@ -136,6 +136,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       if (res && Object.values(res).length === 0) {
         setShowRegisterPasskeyModal(true);
       }
+      uiConsole();
     } catch (err) {
       // Single Factor Auth SDK throws an error if the user has already enabled MFA
       // One can use the Web3AuthNoModal SDK to handle this case
@@ -273,7 +274,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   }, [provider, web3authSFAuth]);
 
   const uiConsole = (...args: unknown[]) => {
-    setPlaygroundConsole(`${JSON.stringify(args || {}, null, 2)}\n\n\n\n${playgroundConsole}`);
+    setPlaygroundConsole(JSON.stringify(args || {}, null, 2));
     console.log(...args);
   };
 

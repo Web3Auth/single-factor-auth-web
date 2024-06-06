@@ -3,7 +3,7 @@ import { usePlayground } from "../services/playground";
 
 function AccountDetails() {
   const [addressToShow, setAddressToShow] = useState<string>("");
-  const { address, balance, userInfo, chainId, hasPasskeys, getUserInfo, registerPasskey, listAllPasskeys } = usePlayground();
+  const { address, balance, userInfo, chainId, hasPasskeys, getUserInfo, registerPasskey } = usePlayground();
 
   useEffect(() => {
     setAddressToShow(address || "");
@@ -38,7 +38,7 @@ function AccountDetails() {
                 }}
               >
                 <span className="overflow-hidden overflow-ellipsis">{addressToShow}</span>
-                <svg className="w-[24px]" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     fillRule="evenodd"
                     clipRule="evenodd"

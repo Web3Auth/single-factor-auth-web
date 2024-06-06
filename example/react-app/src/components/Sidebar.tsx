@@ -13,7 +13,7 @@ const Sidebar = () => {
     navigate("/transactions");
   }
   function goToSourceCode() {
-    window.open("https://github.com/Web3Auth/web3auth-pnp-examples/tree/main/web-modal-sdk/react-modal-playground");
+    window.open("https://github.com/Web3Auth/single-factor-auth-web/tree/master/example/react-app");
   }
   const location = useLocation();
   function linktoGo(label: string, path: any, id: number) {
