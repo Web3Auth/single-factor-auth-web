@@ -1,5 +1,5 @@
 import Hamburger from "hamburger-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayground } from "../services/playground";
 
@@ -7,30 +7,11 @@ import web3authLogo from "../assets/web3authLogoBlue.svg";
 import DisconnectWeb3AuthButton from "./DisconnectWeb3AuthButton";
 import Drawer from "./Drawer";
 
-function getWindowDimensions() {
-  const { innerWidth: width, innerHeight: height } = window;
-  return {
-    width,
-    height,
-  };
-}
-
 const Header = () => {
-  const [windowDimensions, setWindowDimensions] = useState(getWindowDimensions());
-  console.log(windowDimensions);
   const { isLoggedIn } = usePlayground();
 
   const navigate = useNavigate();
   const [isOpen, setOpen] = useState(false);
-
-  useEffect(() => {
-    function handleResize() {
-      setWindowDimensions(getWindowDimensions());
-    }
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   function goToHome() {
     navigate("/");

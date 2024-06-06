@@ -14,18 +14,13 @@ function SigningTransactionPage() {
           <div className="justify-center p-8 mt-6 mb-0 space-y-4 rounded-lg bg-white">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <button onClick={showCheckout} className="card">
-                  Show Checkout
-                </button>
-              </div>
-              <div>
                 <button onClick={showWalletUI} className="card">
                   Show Wallet UI
                 </button>
               </div>
               <div>
-                <button onClick={showWalletScanner} className="card">
-                  Show WalletConnect Scanner
+                <button onClick={showCheckout} className="card">
+                  Show Checkout
                 </button>
               </div>
               <div>
@@ -36,6 +31,11 @@ function SigningTransactionPage() {
               <div>
                 <button onClick={sendTransaction} className="card">
                   Send Transaction
+                </button>
+              </div>
+              <div className="col-span-2">
+                <button onClick={showWalletScanner} className="card">
+                  Show WalletConnect
                 </button>
               </div>
             </div>
