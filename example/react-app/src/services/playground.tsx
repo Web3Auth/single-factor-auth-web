@@ -9,7 +9,7 @@ import { WalletServicesPlugin } from "@web3auth/wallet-services-plugin";
 import { CredentialResponse, googleLogout } from "@react-oauth/google";
 import { shouldSupportPasskey } from "../utils";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import RPC from "../evm.web3";
+import RPC from "../evm.ethers";
 
 export interface ToggleModalData {
   open: boolean;
