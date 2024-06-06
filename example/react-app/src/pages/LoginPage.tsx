@@ -5,18 +5,23 @@ import { usePlayground } from "../services/playground";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { Navigate } from "react-router-dom";
 import Loader from "../components/Loader";
+import { useEffect } from "react";
 
 function LoginPage() {
   const { loginWithPasskey, onSuccess, isLoggedIn, isLoading, toggleGuideModal } = usePlayground();
+  useEffect(() => {
+    document.title = "Login";
+    console.log("Login Page");
+  });
 
   const onLogin = async (credentials: CredentialResponse) => {
     console.log(credentials);
     await onSuccess(credentials);
-    <Navigate to="/" replace={true} />;
+    <Navigate to="/home" replace={true} />;
   };
 
   if (isLoggedIn) {
-    return <Navigate to="/" />;
+    return <Navigate to="/home" />;
   }
 
   return isLoading ? (

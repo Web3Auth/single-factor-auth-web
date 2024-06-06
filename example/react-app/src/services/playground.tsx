@@ -295,7 +295,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
           walletInitOptions: {
             whiteLabel: {
               logoLight: "https://web3auth.io/images/web3auth-logo.svg",
-              logoDark: "https://web3auth.io/images/web3auth-logo.svg",
+              logoDark: "https://web3auth.io/images/web3auth-logo-w.svg",
             },
           },
         });
