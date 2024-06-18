@@ -311,8 +311,8 @@ export const Playground = ({ children }: IPlaygroundProps) => {
           // Get account data
 
           const rpc = new RPC(provider);
-          const accounts = await rpc.getAccounts();
-          if (accounts?.length) setAddress(accounts[0]);
+          const account = await rpc.getAccounts();
+          if (account) setAddress(account);
 
           const balance = await rpc.getBalance();
           setBalance(balance);
