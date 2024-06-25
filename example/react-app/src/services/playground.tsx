@@ -11,11 +11,6 @@ import { shouldSupportPasskey } from "../utils";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import RPC from "../evm.ethers";
 
-export interface ToggleModalData {
-  open: boolean;
-  type?: "how" | "getting-started";
-}
-
 export interface IPlaygroundContext {
   address: string;
   balance: string;
@@ -25,9 +20,10 @@ export interface IPlaygroundContext {
   userInfo: OpenloginUserInfo | null;
   playgroundConsole: string;
   hasPasskeys: boolean;
-  isGuideModalOpen: boolean;
-  guideModalType: ToggleModalData["type"];
+  isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
+  showInfoPopup: boolean;
+  infoPopupCopy: InfoPopupCopy;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
@@ -39,8 +35,9 @@ export interface IPlaygroundContext {
   showWalletScanner: () => void;
   signMessage: () => void;
   sendTransaction: () => void;
-  toggleGuideModal: (params: ToggleModalData) => void;
+  toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: () => void;
+  toggleShowInfoPopup: () => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -52,9 +49,10 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   playgroundConsole: "",
   chainId: "",
   hasPasskeys: false,
-  isGuideModalOpen: false,
-  guideModalType: "how",
+  isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
+  showInfoPopup: false,
+  infoPopupCopy: {},
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
@@ -66,13 +64,19 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   showWalletScanner: async () => null,
   signMessage: async () => null,
   sendTransaction: async () => null,
-  toggleGuideModal: async () => null,
+  toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
+  toggleShowInfoPopup: async () => null,
 });
 
 interface IPlaygroundProps {
   children?: ReactNode;
 }
+
+type InfoPopupCopy = {
+  title?: string;
+  subtitle?: string;
+};
 
 export function usePlayground(): IPlaygroundContext {
   return useContext(PlaygroundContext);
@@ -82,17 +86,29 @@ const verifier = "w3a-sfa-web-google";
 
 const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get from https://dashboard.web3auth.io
 
-const chainConfig = {
-  chainId: "0xaa36a7",
-  displayName: "Ethereum Sepolia Testnet",
+export const chainConfigMain = {
+  chainId: "0x1",
+  displayName: "Ethereum Mainnet",
   chainNamespace: CHAIN_NAMESPACES.EIP155,
   tickerName: "Ethereum",
   ticker: "ETH",
   decimals: 18,
-  rpcTarget: "https://rpc.ankr.com/eth_sepolia",
-  blockExplorerUrl: "https://sepolia.etherscan.io",
+  rpcTarget: "https://rpc.ankr.com/eth",
+  blockExplorerUrl: "https://etherscan.io",
   logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
 };
+
+// const chainConfigTest = {
+//   chainId: "0xaa36a7",
+//   displayName: "Ethereum Sepolia Testnet",
+//   chainNamespace: CHAIN_NAMESPACES.EIP155,
+//   tickerName: "Ethereum",
+//   ticker: "ETH",
+//   decimals: 18,
+//   rpcTarget: "https://rpc.ankr.com/eth_sepolia",
+//   blockExplorerUrl: "https://sepolia.etherscan.io",
+//   logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+// };
 
 export const Playground = ({ children }: IPlaygroundProps) => {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
@@ -108,10 +124,11 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [chainId, setChainId] = useState<string>("");
   const [hasPasskeys, setHasPasskeys] = useState<boolean>(false);
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
+  const [showInfoPopup, setShowInfoPopup] = useState<boolean>(false);
+  const [infoPopupCopy, setInfoPopupCopy] = useState<InfoPopupCopy>({});
 
   // Dialog
-  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
-  const [guideModalType, setGuideModalType] = useState<ToggleModalData["type"]>("how");
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   const onSuccess = async (response: CredentialResponse): Promise<void> => {
     try {
@@ -158,7 +175,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       uiConsole("Passkey logged in successfully");
     } catch (error) {
       console.error((error as Error).message);
-      toggleGuideModal({ open: true, type: "how" });
+      toggleCancelModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -183,8 +200,9 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       });
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
-      toggleGuideModal({ open: true, type: "how" });
+      if (!hasPasskeys) toggleCancelModal(true);
       uiConsole((error as Error).message);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -210,6 +228,12 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const showCheckout = async () => {
     if (!wsPlugin) {
       uiConsole("wallet services plugin not initialized yet");
+      return;
+    }
+    if (chainId !== chainConfigMain.chainId) {
+      console.log("check: checkout not supported on testnets");
+      setInfoPopupCopy({ title: "Error", subtitle: "Checkout not supported on testnets. Switch to mainnet to try checkout" });
+      setShowInfoPopup(true);
       return;
     }
     await wsPlugin.showCheckout();
@@ -260,13 +284,22 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     uiConsole(res);
   };
 
-  const toggleGuideModal = (params: ToggleModalData = { open: true, type: "how" }) => {
-    setIsGuideModalOpen(params.open);
-    setGuideModalType(params.type);
+  const toggleCancelModal = (isOpen: boolean) => {
+    if (isOpen) {
+      setTimeout(() => {
+        setIsCancelModalOpen(true);
+      }, 0);
+    } else {
+      setIsCancelModalOpen(false);
+    }
   };
 
   const toggleRegisterPasskeyModal = () => {
     setShowRegisterPasskeyModal((prev) => !prev);
+  };
+
+  const toggleShowInfoPopup = () => {
+    setShowInfoPopup((prev) => !prev);
   };
 
   useEffect(() => {
@@ -281,7 +314,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   useEffect(() => {
     const init = async () => {
       try {
-        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig } });
+        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig: chainConfigMain } });
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
@@ -346,9 +379,10 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     userInfo,
     playgroundConsole,
     hasPasskeys,
-    isGuideModalOpen,
-    guideModalType,
+    isCancelModalOpen,
     showRegisterPasskeyModal,
+    showInfoPopup,
+    infoPopupCopy,
     onSuccess,
     loginWithPasskey,
     registerPasskey,
@@ -360,8 +394,9 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     showWalletScanner,
     signMessage,
     sendTransaction,
-    toggleGuideModal,
+    toggleCancelModal,
     toggleRegisterPasskeyModal,
+    toggleShowInfoPopup,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
 };

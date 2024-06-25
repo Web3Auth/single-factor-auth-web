@@ -46,7 +46,7 @@ function HomePage() {
             className="flex justify-center rounded-full px-6 h-9 items-center bg-primary text-white cursor-pointer w-full"
             onClick={registerPasskey}
           >
-            Sign in with Passkey
+            Register Passkey
           </button>
         </div>
       </Dialog>
