@@ -1,7 +1,7 @@
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Header from "./components/Header";
-import GuideDialog from "./components/GuideDialog";
+import CancelModal from "./components/CancelModal";
 import { Playground } from "./services/playground";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -13,7 +13,7 @@ const router = createBrowserRouter([
           <Playground>
             <main className="min-h-screen flex flex-col">
               <Header />
-              <GuideDialog />
+              <CancelModal />
               <Outlet />
             </main>
           </Playground>
@@ -47,7 +47,7 @@ const router = createBrowserRouter([
             },
           },
           {
-            path: "transactions",
+            path: "features",
             async lazy() {
               const TransactionsPage = (await import("./pages/TransactionsPage")).default;
               return {

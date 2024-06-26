@@ -9,7 +9,7 @@ const Sidebar = () => {
     navigate("/passkey-list");
   }
   function goToSigning() {
-    navigate("/transactions");
+    navigate("/features");
   }
   function goToSourceCode() {
     window.open("https://github.com/Web3Auth/single-factor-auth-web/tree/master/example/react-app", "_blank", "noreferrer noopener");
@@ -41,8 +41,8 @@ const Sidebar = () => {
           <strong className="px-4 block p-1 text-xs font-medium text-gray-400 uppercase">MENU</strong>
           <nav className="flex flex-col mt-6">
             {location.pathname === "/" ? activePage("Account Details", 1) : linktoGo("Account Details", goToHome, 1)}
-            {location.pathname === "/transactions" ? activePage("Transactions", 2) : linktoGo("Transactions", goToSigning, 2)}
-            {location.pathname === "/passkey-list" ? activePage("Show All Passkeys", 2) : linktoGo("Show All Passkeys", goToPasskeyList, 9)}
+            {location.pathname === "/features" ? activePage("Discover more", 2) : linktoGo("Discover more", goToSigning, 2)}
+            {location.pathname === "/passkey-list" ? activePage("Show All Passkeys", 9) : linktoGo("Show All Passkeys", goToPasskeyList, 9)}
             {linktoGo("Source Code", goToSourceCode, 10)}
           </nav>
         </div>

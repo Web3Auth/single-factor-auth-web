@@ -9,7 +9,7 @@ type Props = {
 const Dialog = forwardRef<HTMLDialogElement, Props>(({ children, closeDialog, type = "non-modal" }, ref) => {
   return (
     <dialog
-      className={`rounded-3xl px-6 pb-6 pt-10 w-[360px] shadow-sm border border-gray-100 ${type === "non-modal" ? "ml-8 mb-8" : ""}`}
+      className={`rounded-3xl px-6 pb-6 pt-10 w-[360px] shadow-sm border border-gray-100 ${type === "non-modal" ? "ml-8 mb-8 z-50 bottom-0 left-0" : ""}`}
       ref={ref}
       onClick={(e) => {
         if (e.currentTarget === e.target) {
