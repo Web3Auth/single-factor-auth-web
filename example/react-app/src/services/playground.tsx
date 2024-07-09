@@ -19,7 +19,10 @@ export interface IPlaygroundContext {
   isLoading: boolean;
   userInfo: OpenloginUserInfo | null;
   playgroundConsole: string;
+  playgroundConsoleTitle: string;
+  playgroundConsoleData: string;
   hasPasskeys: boolean;
+  passkeys: Record<string, string>[];
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
   showInfoPopup: boolean;
@@ -38,6 +41,7 @@ export interface IPlaygroundContext {
   toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: () => void;
   toggleShowInfoPopup: () => void;
+  resetConsole: () => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -47,8 +51,11 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   isLoading: false,
   userInfo: null,
   playgroundConsole: "",
+  playgroundConsoleTitle: "",
+  playgroundConsoleData: "",
   chainId: "",
   hasPasskeys: false,
+  passkeys: [],
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
   showInfoPopup: false,
@@ -67,6 +74,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
   toggleShowInfoPopup: async () => null,
+  resetConsole: async () => null,
 });
 
 interface IPlaygroundProps {
@@ -114,6 +122,8 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
+  const [playgroundConsoleTitle, setPlaygroundConsoleTitle] = useState<string>("");
+  const [playgroundConsoleData, setPlaygroundConsoleData] = useState<string>("");
   const [playgroundConsole, setPlaygroundConsole] = useState<string>("");
   const [wsPlugin, setWsPlugin] = useState<WalletServicesPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,6 +136,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
   const [showInfoPopup, setShowInfoPopup] = useState<boolean>(false);
   const [infoPopupCopy, setInfoPopupCopy] = useState<InfoPopupCopy>({});
+  const [passkeys, setPasskeys] = useState<Record<string, string>[]>([]);
 
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -220,6 +231,8 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const getUserInfo = async (): Promise<OpenloginUserInfo | null> => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
       const useInfo = await web3authSFAuth?.getUserInfo();
+      setPlaygroundConsoleTitle("User Info Console");
+      setPlaygroundConsoleData(JSON.stringify(useInfo, null, 2));
       uiConsole(useInfo);
     }
     return null;
@@ -311,6 +324,11 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     console.log(...args);
   };
 
+  const resetConsole = () => {
+    setPlaygroundConsoleData("");
+    setPlaygroundConsoleTitle("");
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -353,8 +371,10 @@ export const Playground = ({ children }: IPlaygroundProps) => {
           const chainId = await rpc.getChainId();
           setChainId(`0x${chainId}`);
 
-          const res = await plugin?.listAllPasskeys();
-          setHasPasskeys(Object.values(res).length > 0);
+          const res = (await plugin?.listAllPasskeys()) as unknown as Record<string, string>[];
+          console.log("passkeys", res);
+          setHasPasskeys(res.length > 0);
+          setPasskeys(res);
         });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
           console.log("sfa:disconnected");
@@ -378,7 +398,10 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     isLoading,
     userInfo,
     playgroundConsole,
+    playgroundConsoleTitle,
+    playgroundConsoleData,
     hasPasskeys,
+    passkeys,
     isCancelModalOpen,
     showRegisterPasskeyModal,
     showInfoPopup,
@@ -397,6 +420,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     toggleCancelModal,
     toggleRegisterPasskeyModal,
     toggleShowInfoPopup,
+    resetConsole,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
 };

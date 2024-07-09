@@ -1,13 +1,10 @@
 import { useEffect, useRef } from "react";
+import Sidebar from "../components/Sidebar";
+import AccountDetails from "../components/AccountDetails";
+import Console from "../components/Console";
 import { usePlayground } from "../services/playground";
 import Loader from "../components/Loader";
 import Dialog from "../components/Dialog";
-import Account from "../components/Account";
-import Passkeys from "../components/Passkeys";
-import WalletServices from "../components/WalletServices";
-import Card from "../components/Card";
-import DocsDetails from "../components/DocsDetails";
-import Console from "../components/Console";
 
 function HomePage() {
   const dialogHowRef = useRef<HTMLDialogElement>(null);
@@ -27,34 +24,14 @@ function HomePage() {
   return isLoading ? (
     <Loader />
   ) : (
-    <div className="flex-grow flex py-4 px-4 sm:py-6 sm:px-10">
-      <div className="w-full columns-1 sm:columns-2 lg:columns-3 break-before-avoid max-w-6xl mx-auto">
-        <div className="break-inside-avoid space-y-4 mb-4">
-          <Account />
-          <Passkeys />
-        </div>
-        <div className="break-inside-avoid space-y-4 mb-4">
-          <WalletServices />
-        </div>
-        <div className="break-inside-avoid space-y-4">
-          <DocsDetails />
-          <Card>
-            <p className="text-sm text-app-gray-800">
-              Have any questions?
-              <a
-                className="text-app-primary-600 inline mx-1"
-                href="https://calendly.com/web3auth/meeting-with-web3auth"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Schedule a demo call
-              </a>
-              with our team today
-            </p>
-          </Card>
+    <div className="flex-grow flex items-stretch">
+      <Sidebar />
+      <div className="flex-grow p-8 bg-gray-50">
+        <div className="max-w-3xl mx-auto ">
+          <AccountDetails />
+          <Console />
         </div>
       </div>
-      <Console />
       <Dialog type="modal" closeDialog={() => toggleRegisterPasskeyModal()} ref={dialogHowRef}>
         <div className="text-center mt-2">
           <img className="mx-auto mb-b" src="https://images.web3auth.io/passkey-register.svg" alt="Register Passkey" />
