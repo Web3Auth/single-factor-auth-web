@@ -24,19 +24,15 @@ export interface IPlaygroundContext {
   isLoggedIn: boolean;
   isLoading: boolean;
   userInfo: OpenloginUserInfo | null;
-  playgroundConsole: string;
   playgroundConsoleTitle: string;
   playgroundConsoleData: string;
   hasPasskeys: boolean;
   passkeys: PasskeysData[];
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
-  showInfoPopup: boolean;
-  infoPopupCopy: InfoPopupCopy;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
-  listAllPasskeys: () => void;
   logout: () => void;
   getUserInfo: () => Promise<OpenloginUserInfo | null>;
   showCheckout: () => void;
@@ -46,7 +42,6 @@ export interface IPlaygroundContext {
   sendTransaction: () => void;
   toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: () => void;
-  toggleShowInfoPopup: () => void;
   resetConsole: () => void;
 }
 
@@ -56,7 +51,6 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   isLoggedIn: false,
   isLoading: false,
   userInfo: null,
-  playgroundConsole: "",
   playgroundConsoleTitle: "",
   playgroundConsoleData: "",
   chainId: "",
@@ -64,12 +58,9 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   passkeys: [],
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
-  showInfoPopup: false,
-  infoPopupCopy: {},
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
-  listAllPasskeys: async () => null,
   logout: async () => null,
   getUserInfo: async () => null,
   showCheckout: async () => null,
@@ -79,18 +70,12 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   sendTransaction: async () => null,
   toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
-  toggleShowInfoPopup: async () => null,
   resetConsole: async () => null,
 });
 
 interface IPlaygroundProps {
   children?: ReactNode;
 }
-
-type InfoPopupCopy = {
-  title?: string;
-  subtitle?: string;
-};
 
 export function usePlayground(): IPlaygroundContext {
   return useContext(PlaygroundContext);
@@ -130,7 +115,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
   const [playgroundConsoleTitle, setPlaygroundConsoleTitle] = useState<string>("");
   const [playgroundConsoleData, setPlaygroundConsoleData] = useState<string>("");
-  const [playgroundConsole, setPlaygroundConsole] = useState<string>("");
   const [wsPlugin, setWsPlugin] = useState<WalletServicesPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -140,8 +124,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [chainId, setChainId] = useState<string>("");
   const [hasPasskeys, setHasPasskeys] = useState<boolean>(false);
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
-  const [showInfoPopup, setShowInfoPopup] = useState<boolean>(false);
-  const [infoPopupCopy, setInfoPopupCopy] = useState<InfoPopupCopy>({});
   const [passkeys, setPasskeys] = useState<PasskeysData[]>([]);
 
   // Dialog
@@ -250,9 +232,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       return;
     }
     if (chainId !== chainConfigMain.chainId) {
-      console.log("check: checkout not supported on testnets");
-      setInfoPopupCopy({ title: "Error", subtitle: "Checkout not supported on testnets. Switch to mainnet to try checkout" });
-      setShowInfoPopup(true);
+      console.warn("check: checkout not supported on testnets");
       return;
     }
     await wsPlugin.showCheckout();
@@ -295,15 +275,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     await wsPlugin.showWalletConnectScanner();
   };
 
-  const listAllPasskeys = async () => {
-    if (!plugin) {
-      uiConsole("plugin not initialized yet");
-      return;
-    }
-    const res = await plugin?.listAllPasskeys();
-    uiConsole(res);
-  };
-
   const toggleCancelModal = (isOpen: boolean) => {
     if (isOpen) {
       setTimeout(() => {
@@ -318,16 +289,11 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     setShowRegisterPasskeyModal((prev) => !prev);
   };
 
-  const toggleShowInfoPopup = () => {
-    setShowInfoPopup((prev) => !prev);
-  };
-
   useEffect(() => {
     setIsLoggedIn(!!(provider && web3authSFAuth));
   }, [provider, web3authSFAuth]);
 
   const uiConsole = (...args: unknown[]) => {
-    setPlaygroundConsole(JSON.stringify(args || {}, null, 2));
     console.log(...args);
   };
 
@@ -412,19 +378,15 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     isLoggedIn,
     isLoading,
     userInfo,
-    playgroundConsole,
     playgroundConsoleTitle,
     playgroundConsoleData,
     hasPasskeys,
     passkeys,
     isCancelModalOpen,
     showRegisterPasskeyModal,
-    showInfoPopup,
-    infoPopupCopy,
     onSuccess,
     loginWithPasskey,
     registerPasskey,
-    listAllPasskeys,
     logout,
     getUserInfo,
     showCheckout,
@@ -434,7 +396,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     sendTransaction,
     toggleCancelModal,
     toggleRegisterPasskeyModal,
-    toggleShowInfoPopup,
     resetConsole,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
