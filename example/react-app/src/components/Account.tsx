@@ -32,6 +32,7 @@ const Account = () => {
       <Divider />
       <Button
         className="text-sm w-full"
+        title="Copy"
         onClick={() => {
           navigator.clipboard.writeText(address);
           setAddressToShow("Copied!");

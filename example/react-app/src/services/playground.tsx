@@ -11,6 +11,12 @@ import { shouldSupportPasskey } from "../utils";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import RPC from "../evm.ethers";
 
+type PasskeysData = {
+  id: string;
+  name: string;
+  detail1: string;
+  detail2: string;
+};
 export interface IPlaygroundContext {
   address: string;
   balance: string;
@@ -22,7 +28,7 @@ export interface IPlaygroundContext {
   playgroundConsoleTitle: string;
   playgroundConsoleData: string;
   hasPasskeys: boolean;
-  passkeys: Record<string, string>[];
+  passkeys: PasskeysData[];
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
   showInfoPopup: boolean;
@@ -36,7 +42,7 @@ export interface IPlaygroundContext {
   showCheckout: () => void;
   showWalletUI: () => void;
   showWalletScanner: () => void;
-  signMessage: () => void;
+  signMessage: () => Promise<string>;
   sendTransaction: () => void;
   toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: () => void;
@@ -69,7 +75,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   showCheckout: async () => null,
   showWalletUI: async () => null,
   showWalletScanner: async () => null,
-  signMessage: async () => null,
+  signMessage: async () => "",
   sendTransaction: async () => null,
   toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
@@ -136,7 +142,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
   const [showInfoPopup, setShowInfoPopup] = useState<boolean>(false);
   const [infoPopupCopy, setInfoPopupCopy] = useState<InfoPopupCopy>({});
-  const [passkeys, setPasskeys] = useState<Record<string, string>[]>([]);
+  const [passkeys, setPasskeys] = useState<PasskeysData[]>([]);
 
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -260,14 +266,15 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     await wsPlugin.showWalletUi();
   };
 
-  const signMessage = async () => {
+  const signMessage = async (): Promise<string> => {
     if (!provider) {
       uiConsole("No provider found");
-      return;
+      return "";
     }
     const rpc = new RPC(provider);
     const result = await rpc.signMessage();
     uiConsole(result);
+    return result;
   };
 
   const sendTransaction = async () => {
@@ -372,9 +379,17 @@ export const Playground = ({ children }: IPlaygroundProps) => {
           setChainId(`0x${chainId}`);
 
           const res = (await plugin?.listAllPasskeys()) as unknown as Record<string, string>[];
-          console.log("passkeys", res);
           setHasPasskeys(res.length > 0);
-          setPasskeys(res);
+          setPasskeys(
+            res.map((passkey) => {
+              return {
+                id: passkey.id,
+                name: passkey.provider_name,
+                detail1: `${passkey.browser} ${passkey.browser_version} (${passkey.os})`,
+                detail2: new Date(passkey.updated_at).toLocaleString(),
+              };
+            })
+          );
         });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
           console.log("sfa:disconnected");

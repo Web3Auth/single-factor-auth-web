@@ -2,9 +2,28 @@ import Card from "./Card";
 import { usePlayground } from "../services/playground";
 import walletServices from "../assets/walletServices.svg";
 import Button from "./Button";
+import { useState } from "react";
 
 const WalletServices = () => {
+  const [signedMessage, setSignedMessage] = useState<string>("");
+  const [signingState, setSigningState] = useState<"success" | "error" | "">("");
   const { showCheckout, showWalletUI, showWalletScanner, signMessage } = usePlayground();
+
+  async function onSignMessage() {
+    try {
+      const signature = await signMessage();
+      setSignedMessage(signature);
+      setSigningState("success");
+    } catch (error) {
+      console.error(error);
+      setSigningState("error");
+    } finally {
+      setTimeout(() => {
+        setSignedMessage("");
+        setSigningState("");
+      }, 3000);
+    }
+  }
 
   return (
     <Card className="text-center">
@@ -23,9 +42,20 @@ const WalletServices = () => {
         <Button className="w-full" onClick={showWalletScanner}>
           Connect to Applications
         </Button>
-        <Button className="w-full" onClick={signMessage}>
-          Sign Personal Message
-        </Button>
+        {signedMessage ? (
+          <div
+            className={`border p-2 border-app-gray-500 text-app-gray-500 flex flex-col items-center justify-center text-sm rounded-md min-h-9 ${
+              signingState === "success" ? "bg-app-green-100 text-app-green-500" : "bg-app-red-100 text-app-red-800"
+            }`}
+          >
+            <div>{signingState === "success" ? "Signature Success!" : "Signature Failed, Try again"}</div>
+            {signedMessage && <div className="break-all text-xxs leading-tight mt-1">{signedMessage}</div>}
+          </div>
+        ) : (
+          <Button className="w-full" onClick={onSignMessage}>
+            Sign Personal Message
+          </Button>
+        )}
       </div>
     </Card>
   );
