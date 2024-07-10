@@ -8,6 +8,7 @@ import WalletServices from "../components/WalletServices";
 import Card from "../components/Card";
 import DocsDetails from "../components/DocsDetails";
 import Console from "../components/Console";
+import NftServices from "../components/NftServices";
 
 function HomePage() {
   const dialogHowRef = useRef<HTMLDialogElement>(null);
@@ -24,17 +25,25 @@ function HomePage() {
     toggleDialog(showRegisterPasskeyModal);
   }, [showRegisterPasskeyModal]);
 
+
+  useEffect(() => {
+    document.title = "Home";
+    console.log("Home Page");
+  });
   return isLoading ? (
     <Loader />
   ) : (
     <div className="flex-grow flex py-4 px-4 sm:py-6 sm:px-10">
-      <div className="w-full columns-1 sm:columns-2 lg:columns-3 break-before-avoid max-w-6xl mx-auto">
+      <div className="w-full columns-1 sm:columns-2 lg:columns-3 xl:columns-4 break-before-avoid mx-auto">
         <div className="break-inside-avoid space-y-4 mb-4">
           <Account />
           <Passkeys />
         </div>
-        <div className="break-inside-avoid space-y-4 mb-4">
+        <div className="break-inside-avoid lg:break-after-avoid xl:break-after-column mb-4">
           <WalletServices />
+        </div>
+        <div className="break-inside-avoid xl:break-after-column mb-4">
+          <NftServices />
         </div>
         <div className="break-inside-avoid space-y-4">
           <DocsDetails />
@@ -42,7 +51,7 @@ function HomePage() {
             <p className="text-sm text-app-gray-800">
               Have any questions?
               <a
-                className="text-app-primary-600 inline mx-1"
+                className="text-app-primary-600 hover:underline inline mx-1"
                 href="https://calendly.com/web3auth/meeting-with-web3auth"
                 target="_blank"
                 rel="noopener noreferrer"

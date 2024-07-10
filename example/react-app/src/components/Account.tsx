@@ -26,7 +26,7 @@ const Account = () => {
       <div>
         <h3 className="font-bold text-app-gray-800 mb-2">{userInfo?.name || ""}</h3>
         <p className="text-xs text-app-gray-400 mb-1">{userInfo?.email ? userInfo?.email : userInfo?.name}</p>
-        <button className="leading-none text-xs text-app-primary-600" onClick={getUserInfo}>
+        <button className="leading-none text-xs text-app-primary-600 hover:underline" onClick={getUserInfo}>
           View User Info
         </button>
       </div>

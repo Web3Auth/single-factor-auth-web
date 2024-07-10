@@ -251,10 +251,15 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       uiConsole("No provider found");
       return "";
     }
-    const rpc = new RPC(provider);
-    const result = await rpc.signMessage();
-    uiConsole(result);
-    return result;
+
+    const message = "YOUR_MESSAGE";
+    const from = address;
+    const signedMessage = (await wsPlugin?.wsEmbedInstance.provider.request<[string, string], string>({
+      method: "personal_sign",
+      params: [message, from],
+    })) as string;
+    uiConsole(signedMessage);
+    return signedMessage;
   };
 
   const sendTransaction = async () => {
@@ -321,6 +326,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
               logoLight: "https://web3auth.io/images/web3auth-logo.svg",
               logoDark: "https://web3auth.io/images/web3auth-logo-w.svg",
             },
+            confirmationStrategy: "modal",
           },
         });
         web3authSfa?.addPlugin(wsPlugin);
