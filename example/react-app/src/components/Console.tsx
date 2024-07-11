@@ -1,17 +1,49 @@
+import { useEffect, useRef, useState } from "react";
 import { usePlayground } from "../services/playground";
+import Button from "./Button";
 
 const Console = () => {
-  const { playgroundConsole } = usePlayground();
+  const [showAnimate, setShowAnimate] = useState<boolean>(false);
+  const consolePopupRef = useRef<HTMLDialogElement>(null);
+  const { playgroundConsoleData, playgroundConsoleTitle, resetConsole } = usePlayground();
+
+  function closeDialog() {
+    setShowAnimate(false);
+    setTimeout(() => {
+      resetConsole();
+      consolePopupRef.current?.close();
+    }, 180);
+  }
+
+  useEffect(() => {
+    if (!consolePopupRef.current || !playgroundConsoleData) {
+      return;
+    }
+
+    setShowAnimate(true);
+    consolePopupRef.current.showModal();
+  }, [playgroundConsoleData]);
 
   return (
-    <div className="w-full flex-col mt-4">
-      <p className="text-lg font-bold">Console</p>
-      <div className="justify-center p-8 mt-6 mb-0 space-y-4 rounded-lg bg-white">
-        <div className="md:flex items-flex-start p-2 bg-gray-200 max-h-72 overflow-auto rounded-md">
-          <pre className="font-mono text-xs overflow-scroll break-all text-wrap w-full">{playgroundConsole}</pre>
+    <dialog
+      className={`console-dialog overflow-hidden ${showAnimate ? "showAnimate" : ""}`}
+      ref={consolePopupRef}
+      onClick={(e) => {
+        if (e.currentTarget === e.target) {
+          closeDialog();
+        }
+      }}
+    >
+      <div className="p-5 h-full overflow-hidden flex flex-col gap-5">
+        {playgroundConsoleTitle && <div className="flex-shrink-0 font-semibold text-center">{playgroundConsoleTitle}</div>}
+        <div className="flex-1 overflow-auto p-6 bg-app-gray-200 rounded-2xl">
+          <pre className="font-mono text-xs break-all text-wrap w-full">{playgroundConsoleData}</pre>
+        </div>
+        <div className="flex-shrink-0">
+          <Button className="w-full" onClick={closeDialog}>Done</Button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

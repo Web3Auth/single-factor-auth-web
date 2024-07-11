@@ -46,24 +46,6 @@ const router = createBrowserRouter([
               };
             },
           },
-          {
-            path: "features",
-            async lazy() {
-              const TransactionsPage = (await import("./pages/TransactionsPage")).default;
-              return {
-                element: <TransactionsPage />,
-              };
-            },
-          },
-          {
-            path: "passkey-list",
-            async lazy() {
-              const PasskeyListPage = (await import("./pages/PasskeyListPage")).default;
-              return {
-                element: <PasskeyListPage />,
-              };
-            },
-          },
         ],
       },
 

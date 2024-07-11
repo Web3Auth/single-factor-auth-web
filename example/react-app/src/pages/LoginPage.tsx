@@ -7,11 +7,14 @@ import { Navigate } from "react-router-dom";
 import Loader from "../components/Loader";
 import { useEffect, useRef } from "react";
 import Dialog from "../components/Dialog";
+import useWindowDimensions from "../hooks/window-dimensions";
 
 function LoginPage() {
   const guidePopupRef = useRef<HTMLDialogElement>(null);
   const guideModalRef = useRef<HTMLDialogElement>(null);
   const { loginWithPasskey, onSuccess, isLoggedIn, isLoading } = usePlayground();
+
+  const { width } = useWindowDimensions();
 
   const steps = [
     "Sign in with Google or use Google One Tap",
@@ -59,8 +62,8 @@ function LoginPage() {
   return isLoading ? (
     <Loader />
   ) : (
-    <div className="flex-grow flex items-center justify-center ">
-      <div className="w-[392px] shadow-sm border border-gray-100 p-8 rounded-[30px]">
+    <div className="flex-grow flex items-center justify-center p-4">
+      <div className="w-[340px] sm:w-[392px] bg-white p-8 rounded-2xl shadow-modal border-0">
         <img src={web3authLogoBlue} className="w-12 h-12 mb-5" alt="dapp logo" />
         <div className="mb-6">
           <p className="text-xl font-bold text-text_primary">Sign in</p>
@@ -75,7 +78,7 @@ function LoginPage() {
             onSuccess={onLogin}
             size="large"
             shape="pill"
-            width="332px"
+            width={width < 640 ? "276px" : "332px"}
           />
         </div>
         <button
@@ -93,20 +96,22 @@ function LoginPage() {
 
         <img className="mx-auto mt-6" src="https://images.web3auth.io/ws-trademark-light.svg" alt="web3auth footer" />
       </div>
-
-      <Dialog type="non-modal" closeDialog={() => toggleGuidePopup(false)} ref={guidePopupRef}>
-        <div className="mb-6">
-          <h2 className="text-text_primary2 font-semibold">Getting started with Passkey Demo</h2>
-        </div>
-        <ul className="text-text_secondary">
-          {steps.map((step, index) => (
-            <li key={index} className="flex gap-4">
-              <div className="bg-primary flex-shrink-0 mt-1 rounded-full w-5 h-5 flex items-center justify-center text-white">{index + 1}</div>
-              {step}
-            </li>
-          ))}
-        </ul>
-      </Dialog>
+      
+      {width > 640 && (
+        <Dialog type="non-modal" closeDialog={() => toggleGuidePopup(false)} ref={guidePopupRef}>
+          <div className="mb-6">
+            <h2 className="text-text_primary2 font-semibold">Getting started with Passkey Demo</h2>
+          </div>
+          <ul className="text-text_secondary">
+            {steps.map((step, index) => (
+              <li key={index} className="flex gap-4">
+                <div className="bg-primary flex-shrink-0 mt-1 rounded-full w-5 h-5 flex items-center justify-center text-white">{index + 1}</div>
+                {step}
+              </li>
+            ))}
+          </ul>
+        </Dialog>
+      )}
 
       <Dialog type="modal" closeDialog={() => toggleGuideModal(false)} ref={guideModalRef}>
         <div className="mb-8">

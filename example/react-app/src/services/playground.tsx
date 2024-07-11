@@ -11,6 +11,12 @@ import { shouldSupportPasskey } from "../utils";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import RPC from "../evm.ethers";
 
+type PasskeysData = {
+  id: string;
+  name: string;
+  detail1: string;
+  detail2: string;
+};
 export interface IPlaygroundContext {
   address: string;
   balance: string;
@@ -18,26 +24,25 @@ export interface IPlaygroundContext {
   isLoggedIn: boolean;
   isLoading: boolean;
   userInfo: OpenloginUserInfo | null;
-  playgroundConsole: string;
+  playgroundConsoleTitle: string;
+  playgroundConsoleData: string;
   hasPasskeys: boolean;
+  passkeys: PasskeysData[];
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
-  showInfoPopup: boolean;
-  infoPopupCopy: InfoPopupCopy;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
-  listAllPasskeys: () => void;
   logout: () => void;
   getUserInfo: () => Promise<OpenloginUserInfo | null>;
   showCheckout: () => void;
   showWalletUI: () => void;
   showWalletScanner: () => void;
-  signMessage: () => void;
+  signMessage: () => Promise<string>;
   sendTransaction: () => void;
   toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: () => void;
-  toggleShowInfoPopup: () => void;
+  resetConsole: () => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -46,37 +51,31 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   isLoggedIn: false,
   isLoading: false,
   userInfo: null,
-  playgroundConsole: "",
+  playgroundConsoleTitle: "",
+  playgroundConsoleData: "",
   chainId: "",
   hasPasskeys: false,
+  passkeys: [],
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
-  showInfoPopup: false,
-  infoPopupCopy: {},
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
-  listAllPasskeys: async () => null,
   logout: async () => null,
   getUserInfo: async () => null,
   showCheckout: async () => null,
   showWalletUI: async () => null,
   showWalletScanner: async () => null,
-  signMessage: async () => null,
+  signMessage: async () => "",
   sendTransaction: async () => null,
   toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
-  toggleShowInfoPopup: async () => null,
+  resetConsole: async () => null,
 });
 
 interface IPlaygroundProps {
   children?: ReactNode;
 }
-
-type InfoPopupCopy = {
-  title?: string;
-  subtitle?: string;
-};
 
 export function usePlayground(): IPlaygroundContext {
   return useContext(PlaygroundContext);
@@ -114,7 +113,8 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
-  const [playgroundConsole, setPlaygroundConsole] = useState<string>("");
+  const [playgroundConsoleTitle, setPlaygroundConsoleTitle] = useState<string>("");
+  const [playgroundConsoleData, setPlaygroundConsoleData] = useState<string>("");
   const [wsPlugin, setWsPlugin] = useState<WalletServicesPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -124,8 +124,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const [chainId, setChainId] = useState<string>("");
   const [hasPasskeys, setHasPasskeys] = useState<boolean>(false);
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
-  const [showInfoPopup, setShowInfoPopup] = useState<boolean>(false);
-  const [infoPopupCopy, setInfoPopupCopy] = useState<InfoPopupCopy>({});
+  const [passkeys, setPasskeys] = useState<PasskeysData[]>([]);
 
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -220,6 +219,8 @@ export const Playground = ({ children }: IPlaygroundProps) => {
   const getUserInfo = async (): Promise<OpenloginUserInfo | null> => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
       const useInfo = await web3authSFAuth?.getUserInfo();
+      setPlaygroundConsoleTitle("User Info Console");
+      setPlaygroundConsoleData(JSON.stringify(useInfo, null, 2));
       uiConsole(useInfo);
     }
     return null;
@@ -231,9 +232,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
       return;
     }
     if (chainId !== chainConfigMain.chainId) {
-      console.log("check: checkout not supported on testnets");
-      setInfoPopupCopy({ title: "Error", subtitle: "Checkout not supported on testnets. Switch to mainnet to try checkout" });
-      setShowInfoPopup(true);
+      console.warn("check: checkout not supported on testnets");
       return;
     }
     await wsPlugin.showCheckout();
@@ -247,14 +246,20 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     await wsPlugin.showWalletUi();
   };
 
-  const signMessage = async () => {
+  const signMessage = async (): Promise<string> => {
     if (!provider) {
       uiConsole("No provider found");
-      return;
+      return "";
     }
-    const rpc = new RPC(provider);
-    const result = await rpc.signMessage();
-    uiConsole(result);
+
+    const message = "YOUR_MESSAGE";
+    const from = address;
+    const signedMessage = (await wsPlugin?.wsEmbedInstance.provider.request<[string, string], string>({
+      method: "personal_sign",
+      params: [message, from],
+    })) as string;
+    uiConsole(signedMessage);
+    return signedMessage;
   };
 
   const sendTransaction = async () => {
@@ -275,15 +280,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     await wsPlugin.showWalletConnectScanner();
   };
 
-  const listAllPasskeys = async () => {
-    if (!plugin) {
-      uiConsole("plugin not initialized yet");
-      return;
-    }
-    const res = await plugin?.listAllPasskeys();
-    uiConsole(res);
-  };
-
   const toggleCancelModal = (isOpen: boolean) => {
     if (isOpen) {
       setTimeout(() => {
@@ -298,17 +294,17 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     setShowRegisterPasskeyModal((prev) => !prev);
   };
 
-  const toggleShowInfoPopup = () => {
-    setShowInfoPopup((prev) => !prev);
-  };
-
   useEffect(() => {
     setIsLoggedIn(!!(provider && web3authSFAuth));
   }, [provider, web3authSFAuth]);
 
   const uiConsole = (...args: unknown[]) => {
-    setPlaygroundConsole(JSON.stringify(args || {}, null, 2));
     console.log(...args);
+  };
+
+  const resetConsole = () => {
+    setPlaygroundConsoleData("");
+    setPlaygroundConsoleTitle("");
   };
 
   useEffect(() => {
@@ -330,6 +326,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
               logoLight: "https://web3auth.io/images/web3auth-logo.svg",
               logoDark: "https://web3auth.io/images/web3auth-logo-w.svg",
             },
+            confirmationStrategy: "modal",
           },
         });
         web3authSfa?.addPlugin(wsPlugin);
@@ -353,8 +350,18 @@ export const Playground = ({ children }: IPlaygroundProps) => {
           const chainId = await rpc.getChainId();
           setChainId(`0x${chainId}`);
 
-          const res = await plugin?.listAllPasskeys();
-          setHasPasskeys(Object.values(res).length > 0);
+          const res = (await plugin?.listAllPasskeys()) as unknown as Record<string, string>[];
+          setHasPasskeys(res.length > 0);
+          setPasskeys(
+            res.map((passkey) => {
+              return {
+                id: passkey.id,
+                name: passkey.provider_name,
+                detail1: `${passkey.browser} ${passkey.browser_version} (${passkey.os})`,
+                detail2: new Date(passkey.updated_at).toLocaleString(),
+              };
+            })
+          );
         });
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
           console.log("sfa:disconnected");
@@ -377,16 +384,15 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     isLoggedIn,
     isLoading,
     userInfo,
-    playgroundConsole,
+    playgroundConsoleTitle,
+    playgroundConsoleData,
     hasPasskeys,
+    passkeys,
     isCancelModalOpen,
     showRegisterPasskeyModal,
-    showInfoPopup,
-    infoPopupCopy,
     onSuccess,
     loginWithPasskey,
     registerPasskey,
-    listAllPasskeys,
     logout,
     getUserInfo,
     showCheckout,
@@ -396,7 +402,7 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     sendTransaction,
     toggleCancelModal,
     toggleRegisterPasskeyModal,
-    toggleShowInfoPopup,
+    resetConsole,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
 };
