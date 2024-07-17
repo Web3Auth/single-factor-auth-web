@@ -1,10 +1,11 @@
-import Card from "./Card";
-import { usePlayground } from "../services/playground";
-import walletServices from "../assets/walletServices.svg";
-import Button from "./Button";
 import { useState } from "react";
 
-const WalletServices = () => {
+import walletServices from "../assets/walletServices.svg";
+import { usePlayground } from "../services/playground";
+import Button from "./Button";
+import Card from "./Card";
+
+function WalletServices() {
   const [signedMessage, setSignedMessage] = useState<string>("");
   const [signingState, setSigningState] = useState<"success" | "error" | "">("");
   const { showCheckout, showWalletUI, showWalletScanner, signMessage } = usePlayground();
@@ -59,5 +60,5 @@ const WalletServices = () => {
       </div>
     </Card>
   );
-};
+}
 export default WalletServices;

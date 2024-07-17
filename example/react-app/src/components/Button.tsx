@@ -1,7 +1,9 @@
-type BaseButtonAttributes = React.ComponentPropsWithoutRef<"button">;
-type BaseHyperlinkAttributes = React.ComponentPropsWithoutRef<"a">;
+import { ComponentPropsWithoutRef } from "react";
 
-const Button = (props: BaseButtonAttributes | BaseHyperlinkAttributes) => {
+type BaseButtonAttributes = ComponentPropsWithoutRef<"button">;
+type BaseHyperlinkAttributes = ComponentPropsWithoutRef<"a">;
+
+function Button(props: BaseButtonAttributes | BaseHyperlinkAttributes) {
   const { children, className } = props as BaseButtonAttributes;
   const { href } = props as BaseHyperlinkAttributes;
 
@@ -43,6 +45,7 @@ const Button = (props: BaseButtonAttributes | BaseHyperlinkAttributes) => {
 
   return (
     <button
+      type="button"
       {...(props as BaseButtonAttributes)}
       className={`flex
         rounded-md
@@ -74,5 +77,5 @@ const Button = (props: BaseButtonAttributes | BaseHyperlinkAttributes) => {
       {children}
     </button>
   );
-};
+}
 export default Button;

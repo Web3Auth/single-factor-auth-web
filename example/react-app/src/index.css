@@ -4,16 +4,14 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 .sidebarHeading {
@@ -44,7 +42,6 @@ code {
   padding: 1% 2.2%;
 }
 
-
 .loader {
   @apply relative inline-flex h-[60px] w-[60px];
 }
@@ -57,11 +54,7 @@ code {
   border-radius: 100vw;
   background-size: 100% 100%;
   background-position: 0px 0px;
-  background-image: conic-gradient(from 0deg at 50% 50%,
-      #0364ff 0%,
-      rgb(229, 231, 235, 0.8) 90deg,
-      rgb(229, 231, 235, 0.8) 270deg,
-      #0364ff 360deg);
+  background-image: conic-gradient(from 0deg at 50% 50%, #0364ff 0%, rgb(229, 231, 235, 0.8) 90deg, rgb(229, 231, 235, 0.8) 270deg, #0364ff 360deg);
 
   -webkit-mask:
     radial-gradient(farthest-side, #000 98%, #0000) center/85% 85% no-repeat,

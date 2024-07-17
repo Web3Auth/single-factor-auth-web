@@ -1,11 +1,11 @@
-import Card from "./Card";
-import { usePlayground } from "../services/playground";
 import keyIcon from "../assets/keyIcon.svg";
-import Button from "./Button";
-import Divider from "./Divider";
+import { usePlayground } from "../services/playground";
 import Badge from "./Badge";
+import Button from "./Button";
+import Card from "./Card";
+import Divider from "./Divider";
 
-const Passkeys = () => {
+function Passkeys() {
   const { hasPasskeys, passkeys, registerPasskey } = usePlayground();
 
   return (
@@ -44,5 +44,5 @@ const Passkeys = () => {
       )}
     </Card>
   );
-};
+}
 export default Passkeys;

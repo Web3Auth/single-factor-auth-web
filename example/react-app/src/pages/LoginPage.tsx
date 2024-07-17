@@ -1,13 +1,13 @@
-import web3authLogoBlue from "../assets/web3authLogoBlue.svg";
-import { usePlayground } from "../services/playground";
-
-// Google OAuth libraries for login and logout
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { Navigate } from "react-router-dom";
-import Loader from "../components/Loader";
 import { useEffect, useRef } from "react";
+// Google OAuth libraries for login and logout
+import { Navigate } from "react-router-dom";
+
+import web3authLogoBlue from "../assets/web3authLogoBlue.svg";
 import Dialog from "../components/Dialog";
+import Loader from "../components/Loader";
 import useWindowDimensions from "../hooks/window-dimensions";
+import { usePlayground } from "../services/playground";
 
 function LoginPage() {
   const guidePopupRef = useRef<HTMLDialogElement>(null);
@@ -47,7 +47,7 @@ function LoginPage() {
   const onLogin = async (credentials: CredentialResponse) => {
     toggleGuidePopup(false);
     await onSuccess(credentials);
-    <Navigate to="/home" replace={true} />;
+    <Navigate to="/home" replace />;
   };
 
   const onLoginWithPasskey = async () => {
@@ -96,7 +96,7 @@ function LoginPage() {
 
         <img className="mx-auto mt-6" src="https://images.web3auth.io/ws-trademark-light.svg" alt="web3auth footer" />
       </div>
-      
+
       {width > 640 && (
         <Dialog type="non-modal" closeDialog={() => toggleGuidePopup(false)} ref={guidePopupRef}>
           <div className="mb-6">

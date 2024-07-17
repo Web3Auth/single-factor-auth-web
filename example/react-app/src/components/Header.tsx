@@ -1,17 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { usePlayground } from "../services/playground";
 
 import web3authLogo from "../assets/web3authLogoBlue.svg";
+import { usePlayground } from "../services/playground";
 import Button from "./Button";
 
-const Header = () => {
+function Header() {
   const { isLoggedIn, logout } = usePlayground();
 
   const navigate = useNavigate();
 
-  function goToHome() {
+  const goToHome = () => {
     navigate("/");
-  }
+  };
 
   return (
     <header className="sticky max-w-screen z-10">
@@ -46,6 +46,6 @@ const Header = () => {
       </div>
     </header>
   );
-};
+}
 
 export default Header;

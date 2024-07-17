@@ -1,14 +1,15 @@
-import Button from "./Button";
-import Card from "./Card";
-import nftSample from "../assets/nftSample.svg";
 import { useEffect, useState } from "react";
+
+import nftSample from "../assets/nftSample.svg";
 import config from "../config";
 import { usePlayground } from "../services/playground";
+import Button from "./Button";
+import Card from "./Card";
 
 const FREE_MINT_CONTRACT_ID = "b5b4de3f-0212-11ef-a08f-0242ac190003";
 const PAID_MINT_CONTRACT_ID = "d1145a8b-98ae-44e0-ab63-2c9c8371caff";
 
-const DocsDetails = () => {
+function DocsDetails() {
   const [showNftMinting, setShowNftMinting] = useState(false);
   const [showNftPurchase, setShowNftPurchase] = useState(false);
   const { address: receiverAddress } = usePlayground();
@@ -108,5 +109,5 @@ const DocsDetails = () => {
       )}
     </Card>
   );
-};
+}
 export default DocsDetails;

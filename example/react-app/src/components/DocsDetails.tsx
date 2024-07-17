@@ -1,7 +1,7 @@
 import Button from "./Button";
 import Card from "./Card";
 
-const DocsDetails = () => {
+function DocsDetails() {
   return (
     <Card>
       <div className="mb-4">
@@ -30,5 +30,5 @@ const DocsDetails = () => {
       </Button>
     </Card>
   );
-};
+}
 export default DocsDetails;

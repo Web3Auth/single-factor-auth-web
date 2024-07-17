@@ -1,14 +1,15 @@
 import { useEffect, useRef } from "react";
-import { usePlayground } from "../services/playground";
-import Loader from "../components/Loader";
-import Dialog from "../components/Dialog";
+
 import Account from "../components/Account";
+import Card from "../components/Card";
+import Console from "../components/Console";
+import Dialog from "../components/Dialog";
+import DocsDetails from "../components/DocsDetails";
+import Loader from "../components/Loader";
+import NftServices from "../components/NftServices";
 import Passkeys from "../components/Passkeys";
 import WalletServices from "../components/WalletServices";
-import Card from "../components/Card";
-import DocsDetails from "../components/DocsDetails";
-import Console from "../components/Console";
-import NftServices from "../components/NftServices";
+import { usePlayground } from "../services/playground";
 
 function HomePage() {
   const dialogHowRef = useRef<HTMLDialogElement>(null);
@@ -24,7 +25,6 @@ function HomePage() {
   useEffect(() => {
     toggleDialog(showRegisterPasskeyModal);
   }, [showRegisterPasskeyModal]);
-
 
   useEffect(() => {
     document.title = "Home";

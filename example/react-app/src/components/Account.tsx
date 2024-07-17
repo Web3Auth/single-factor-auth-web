@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import Card from "./Card";
-import { usePlayground } from "../services/playground";
-import copyIcon from "../assets/copyIcon.svg";
-import Divider from "./Divider";
-import Button from "./Button";
 
-const Account = () => {
+import copyIcon from "../assets/copyIcon.svg";
+import { usePlayground } from "../services/playground";
+import Button from "./Button";
+import Card from "./Card";
+import Divider from "./Divider";
+
+function Account() {
   const [addressToShow, setAddressToShow] = useState<string>("");
   const { address, userInfo, getUserInfo } = usePlayground();
 
@@ -26,7 +27,7 @@ const Account = () => {
       <div>
         <h3 className="font-bold text-app-gray-800 mb-2">{userInfo?.name || ""}</h3>
         <p className="text-xs text-app-gray-400 mb-1">{userInfo?.email ? userInfo?.email : userInfo?.name}</p>
-        <button className="leading-none text-xs text-app-primary-600 hover:underline" onClick={getUserInfo}>
+        <button type="button" className="leading-none text-xs text-app-primary-600 hover:underline" onClick={getUserInfo}>
           View User Info
         </button>
       </div>
@@ -49,5 +50,5 @@ const Account = () => {
       </Button>
     </Card>
   );
-};
+}
 export default Account;

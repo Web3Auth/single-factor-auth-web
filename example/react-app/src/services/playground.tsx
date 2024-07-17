@@ -1,15 +1,15 @@
+import { CredentialResponse, googleLogout } from "@react-oauth/google";
+import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import { CHAIN_NAMESPACES, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
+// Import Single Factor Auth SDK for no redirect flow
+import { ADAPTER_EVENTS, decodeToken, Web3Auth } from "@web3auth/single-factor-auth";
+import { WalletServicesPlugin } from "@web3auth/wallet-services-plugin";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
-// Import Single Factor Auth SDK for no redirect flow
-import { Web3Auth, ADAPTER_EVENTS, decodeToken } from "@web3auth/single-factor-auth";
-import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
-import { WalletServicesPlugin } from "@web3auth/wallet-services-plugin";
-import { CredentialResponse, googleLogout } from "@react-oauth/google";
-import { shouldSupportPasskey } from "../utils";
-import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
 import RPC from "../evm.ethers";
+import { shouldSupportPasskey } from "../utils";
 
 type PasskeysData = {
   id: string;
@@ -109,7 +109,7 @@ export const chainConfigMain = {
 //   logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
 // };
 
-export const Playground = ({ children }: IPlaygroundProps) => {
+export function Playground({ children }: IPlaygroundProps) {
   const [web3authSFAuth, setWeb3authSFAuth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [plugin, setPlugin] = useState<PasskeysPlugin | null>(null);
@@ -213,7 +213,6 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     googleLogout();
     await web3authSFAuth.logout();
     uiConsole("Logged out");
-    return;
   };
 
   const getUserInfo = async (): Promise<OpenloginUserInfo | null> => {
@@ -405,4 +404,4 @@ export const Playground = ({ children }: IPlaygroundProps) => {
     resetConsole,
   };
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
-};
+}

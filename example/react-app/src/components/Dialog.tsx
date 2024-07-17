@@ -1,8 +1,9 @@
-import { forwardRef } from "react";
+import { forwardRef, ReactNode } from "react";
+
 import closeIcon from "../assets/closeIcon.svg";
 
 type Props = {
-  children: React.ReactNode;
+  children: ReactNode;
   closeDialog: () => void;
   type: "modal" | "non-modal";
 };
