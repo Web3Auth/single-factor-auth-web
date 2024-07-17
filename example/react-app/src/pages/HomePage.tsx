@@ -1,3 +1,4 @@
+import { log } from "@web3auth/base";
 import { useEffect, useRef } from "react";
 
 import Account from "../components/Account";
@@ -19,7 +20,11 @@ function HomePage() {
     if (!dialogHowRef.current) {
       return;
     }
-    open ? dialogHowRef.current.showModal() : dialogHowRef.current.close();
+    if (open) {
+      dialogHowRef.current.showModal();
+      return;
+    }
+    dialogHowRef.current.close();
   }
 
   useEffect(() => {
@@ -28,7 +33,7 @@ function HomePage() {
 
   useEffect(() => {
     document.title = "Home";
-    console.log("Home Page");
+    log.info("Home Page");
   });
   return isLoading ? (
     <Loader />
@@ -77,6 +82,7 @@ function HomePage() {
           <button
             className="flex justify-center rounded-full px-6 h-9 items-center bg-primary text-white cursor-pointer w-full"
             onClick={registerPasskey}
+            type="button"
           >
             Register Passkey
           </button>

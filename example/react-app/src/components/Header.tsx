@@ -17,8 +17,8 @@ function Header() {
     <header className="sticky max-w-screen z-10">
       <div className="px-4 py-4 mx-auto sm:py-2 sm:px-6 md:px-8 bg-white">
         <div className="justify-between items-center flex">
-          <div className="block sm:flex py-0 sm:py-3 justify-center  flex-row" onClick={() => goToHome()}>
-            <div className="flex flex-row justify-center items-center mb-2 sm:mb-0">
+          <button className="flex py-0 sm:py-3 justify-center items-center flex-row" onClick={() => goToHome()} type="button">
+            <div className="flex flex-row justify-center items-center">
               <img
                 src={web3authLogo}
                 style={{
@@ -29,12 +29,8 @@ function Header() {
               />
               <div className="border-l-2 text-sm sm:text-xl text-gray-900 px-3 items-center">SDK Playground</div>
             </div>
-            <div className="flex flex-row justify-center items-center no-underline w-max overflow-hidden flex-wrap m-0 p-0 rounded-lg bg-purple_100 mt-0">
-              <div className="flex flex-col justify-center text-center items-center w-max font-medium text-xs sm:text-s leading-[150%] text-purple_800 flex-wrap m-0 px-2 sm:px-3 py-0.5;">
-                SFA Passkey
-              </div>
-            </div>
-          </div>
+            <div className="font-medium text-xs sm:text-sm text-purple_800 bg-purple_100 px-2 sm:px-3 py-1 rounded-lg">SFA Passkey</div>
+          </button>
           {isLoggedIn && (
             <div className="mt-0 items-center">
               <Button className="!h-8 sm:!h-[42px]" onClick={logout}>

@@ -28,7 +28,7 @@ function Passkeys() {
 
       {hasPasskeys && (
         <div className="divide-y divide-app-gray-200 ">
-          {passkeys.map((passkey, index) => (
+          {passkeys.map((passkey) => (
             <div key={passkey.id} className="flex items-center py-4">
               <div className="mr-2">
                 <img src={keyIcon} className="text-app-gray-900 w-5 h-5" alt="key" />

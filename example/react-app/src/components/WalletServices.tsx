@@ -1,3 +1,4 @@
+import { log } from "@web3auth/base";
 import { useState } from "react";
 
 import walletServices from "../assets/walletServices.svg";
@@ -10,13 +11,13 @@ function WalletServices() {
   const [signingState, setSigningState] = useState<"success" | "error" | "">("");
   const { showCheckout, showWalletUI, showWalletScanner, signMessage } = usePlayground();
 
-  async function onSignMessage() {
+  const onSignMessage = async () => {
     try {
       const signature = await signMessage();
       setSignedMessage(signature);
       setSigningState("success");
     } catch (error) {
-      console.error(error);
+      log.error(error);
       setSigningState("error");
     } finally {
       setTimeout(() => {
@@ -24,7 +25,7 @@ function WalletServices() {
         setSigningState("");
       }, 3000);
     }
-  }
+  };
 
   return (
     <Card className="text-center">
@@ -53,7 +54,7 @@ function WalletServices() {
             {signedMessage && <div className="break-all text-xxs leading-tight mt-1">{signedMessage}</div>}
           </div>
         ) : (
-          <Button className="w-full" onClick={onSignMessage}>
+          <Button className="w-full" onClick={onSignMessage} type="button">
             Sign Personal Message
           </Button>
         )}
