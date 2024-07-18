@@ -41,7 +41,7 @@ export interface IPlaygroundContext {
   signMessage: () => Promise<string>;
   sendTransaction: () => void;
   toggleCancelModal: (isOpen: boolean) => void;
-  toggleRegisterPasskeyModal: () => void;
+  toggleRegisterPasskeyModal: (isOpen: boolean) => void;
   resetConsole: () => void;
 }
 
@@ -296,8 +296,8 @@ export function Playground({ children }: IPlaygroundProps) {
     await wsPlugin.showWalletConnectScanner();
   }, [wsPlugin]);
 
-  const toggleRegisterPasskeyModal = () => {
-    setShowRegisterPasskeyModal((prev) => !prev);
+  const toggleRegisterPasskeyModal = (isOpen: boolean) => {
+    setShowRegisterPasskeyModal(isOpen);
   };
 
   useEffect(() => {
@@ -373,8 +373,7 @@ export function Playground({ children }: IPlaygroundProps) {
 
         setWeb3authSFAuth(web3authSfa);
         await web3authSfa.init();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).web3auth = web3authSfa;
+        window.web3auth = web3authSfa;
       } catch (error) {
         log.error(error);
       }

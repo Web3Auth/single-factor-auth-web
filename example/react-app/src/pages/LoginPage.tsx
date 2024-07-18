@@ -5,14 +5,14 @@ import { useEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 
 import web3authLogoBlue from "../assets/web3authLogoBlue.svg";
-import Dialog from "../components/Dialog";
+import Dialog, { DialogRef } from "../components/Dialog";
 import Loader from "../components/Loader";
 import useWindowDimensions from "../hooks/window-dimensions";
 import { usePlayground } from "../services/playground";
 
 function LoginPage() {
-  const guidePopupRef = useRef<HTMLDialogElement>(null);
-  const guideModalRef = useRef<HTMLDialogElement>(null);
+  const guidePopupRef = useRef<DialogRef>(null);
+  const guideModalRef = useRef<DialogRef>(null);
   const { loginWithPasskey, onSuccess, isLoggedIn, isLoading } = usePlayground();
 
   const { width } = useWindowDimensions();
@@ -37,7 +37,7 @@ function LoginPage() {
       return;
     }
     if (open) {
-      guideModalRef.current.showModal();
+      guideModalRef.current.show();
       return;
     }
     guideModalRef.current.close();

@@ -25,17 +25,29 @@ function Console() {
     consolePopupRef.current.showModal();
   }, [playgroundConsoleData]);
 
+  useEffect(() => {
+    const effectRef = consolePopupRef.current;
+    const closeEffectDialog = () => {
+      setShowAnimate(false);
+      setTimeout(() => {
+        resetConsole();
+        consolePopupRef.current?.close();
+      }, 180);
+    };
+
+    if (effectRef) {
+      effectRef.addEventListener("click", closeEffectDialog);
+
+      return () => {
+        effectRef.removeEventListener("scroll", closeEffectDialog);
+      };
+    }
+
+    return () => {};
+  }, [resetConsole, consolePopupRef]);
+
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-    <dialog
-      className={`console-dialog overflow-hidden ${showAnimate ? "showAnimate" : ""}`}
-      ref={consolePopupRef}
-      onClick={(e) => {
-        if (e.currentTarget === e.target) {
-          closeDialog();
-        }
-      }}
-    >
+    <dialog className={`console-dialog overflow-hidden ${showAnimate ? "showAnimate" : ""}`} ref={consolePopupRef}>
       <div className="p-5 h-full overflow-hidden flex flex-col gap-5">
         {playgroundConsoleTitle && <div className="flex-shrink-0 font-semibold text-center">{playgroundConsoleTitle}</div>}
         <div className="flex-1 overflow-auto p-6 bg-app-gray-200 rounded-2xl">
