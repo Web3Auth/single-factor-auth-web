@@ -6,7 +6,7 @@ function Loader() {
       <div className="flex flex-col items-center gap-2">
         <div className="loader">
           <div className="loader-spinner" />
-          <img v-if="showLogo" className="loader-image" src={web3authLogo} alt="Loader" />
+          <img className="loader-image" src={web3authLogo} alt="Loader" />
         </div>
         <div>We will be there in a few seconds.</div>
       </div>

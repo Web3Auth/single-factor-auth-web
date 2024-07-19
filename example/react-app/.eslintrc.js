@@ -13,6 +13,12 @@ module.exports = {
   rules: {
     "@typescript-eslint/no-throw-literal": 0,
     "no-case-declarations": 0,
+    "react/jsx-props-no-spreading": [
+      "error",
+      {
+        html: "ignore",
+      },
+    ],
     "import/extensions": [
       "error",
       "ignorePackages",

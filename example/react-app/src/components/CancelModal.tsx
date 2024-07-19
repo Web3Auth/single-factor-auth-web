@@ -2,10 +2,10 @@ import { useEffect, useRef } from "react";
 
 import AlertIcon from "../assets/alertIcon.svg";
 import { usePlayground } from "../services/playground";
-import Dialog from "./Dialog";
+import Dialog, { DialogRef } from "./Dialog";
 
 function CancelModal() {
-  const dialogHowRef = useRef<HTMLDialogElement>(null);
+  const dialogHowRef = useRef<DialogRef>(null);
   const { isCancelModalOpen, toggleCancelModal } = usePlayground();
   const steps = [
     "Sign in with Google or use Google One Tap",
@@ -18,7 +18,7 @@ function CancelModal() {
       return;
     }
     if (isCancelModalOpen) {
-      dialogHowRef.current.showModal();
+      dialogHowRef.current.show();
     } else dialogHowRef.current.close();
   }, [isCancelModalOpen]);
 

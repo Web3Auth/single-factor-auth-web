@@ -1,5 +1,5 @@
 import type { IProvider } from "@web3auth/base";
-import { BrowserProvider, formatEther, parseEther } from "ethers";
+import { BrowserProvider, type Eip1193Provider, formatEther, parseEther } from "ethers";
 
 export default class EthereumRpc {
   private provider: IProvider;
@@ -8,20 +8,20 @@ export default class EthereumRpc {
     this.provider = provider;
   }
 
-  async getChainId(): Promise<any> {
+  async getChainId(): Promise<string> {
     try {
       const ethersProvider = new BrowserProvider(this.provider);
       // Get the connected Chain's ID
       const networkDetails = await ethersProvider.getNetwork();
-      return networkDetails.chainId;
+      return networkDetails.chainId.toString();
     } catch (error) {
-      return error;
+      return error as string;
     }
   }
 
   async getAccounts(): Promise<string> {
     try {
-      const provider = new BrowserProvider(this.provider as any);
+      const provider = new BrowserProvider(this.provider as Eip1193Provider);
       const signer = await provider.getSigner();
       const account = await signer.getAddress();
       return account;
@@ -32,7 +32,7 @@ export default class EthereumRpc {
 
   async getBalance(): Promise<string> {
     try {
-      const provider = new BrowserProvider(this.provider as any);
+      const provider = new BrowserProvider(this.provider as Eip1193Provider);
       const signer = await provider.getSigner();
       const account = await signer.getAddress();
       // Get user's balance in ether
@@ -47,7 +47,7 @@ export default class EthereumRpc {
 
   async signMessage(): Promise<string> {
     try {
-      const provider = new BrowserProvider(this.provider as any);
+      const provider = new BrowserProvider(this.provider as Eip1193Provider);
       const signer = await provider.getSigner();
 
       const originalMessage = "YOUR_MESSAGE";
@@ -61,7 +61,7 @@ export default class EthereumRpc {
 
   async signAndSendTransaction(): Promise<string> {
     try {
-      const provider = new BrowserProvider(this.provider as any);
+      const provider = new BrowserProvider(this.provider as Eip1193Provider);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
 

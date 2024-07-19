@@ -1,9 +1,10 @@
+import { log } from "@web3auth/base";
 import { useEffect, useRef } from "react";
 
 import Account from "../components/Account";
 import Card from "../components/Card";
 import Console from "../components/Console";
-import Dialog from "../components/Dialog";
+import Dialog, { DialogRef } from "../components/Dialog";
 import DocsDetails from "../components/DocsDetails";
 import Loader from "../components/Loader";
 import NftServices from "../components/NftServices";
@@ -12,14 +13,18 @@ import WalletServices from "../components/WalletServices";
 import { usePlayground } from "../services/playground";
 
 function HomePage() {
-  const dialogHowRef = useRef<HTMLDialogElement>(null);
+  const dialogHowRef = useRef<DialogRef>(null);
   const { isLoading, showRegisterPasskeyModal, registerPasskey, toggleRegisterPasskeyModal } = usePlayground();
 
   function toggleDialog(open: boolean) {
     if (!dialogHowRef.current) {
       return;
     }
-    open ? dialogHowRef.current.showModal() : dialogHowRef.current.close();
+    if (open) {
+      dialogHowRef.current.show();
+      return;
+    }
+    dialogHowRef.current.close();
   }
 
   useEffect(() => {
@@ -28,7 +33,7 @@ function HomePage() {
 
   useEffect(() => {
     document.title = "Home";
-    console.log("Home Page");
+    log.info("Home Page");
   });
   return isLoading ? (
     <Loader />
@@ -64,7 +69,7 @@ function HomePage() {
         </div>
       </div>
       <Console />
-      <Dialog type="modal" closeDialog={() => toggleRegisterPasskeyModal()} ref={dialogHowRef}>
+      <Dialog type="modal" closeDialog={() => toggleRegisterPasskeyModal(false)} ref={dialogHowRef}>
         <div className="text-center mt-2">
           <img className="mx-auto mb-b" src="https://images.web3auth.io/passkey-register.svg" alt="Register Passkey" />
           <div className="font-bold mb-2 text-gray-900">Register Passkey</div>
@@ -77,6 +82,7 @@ function HomePage() {
           <button
             className="flex justify-center rounded-full px-6 h-9 items-center bg-primary text-white cursor-pointer w-full"
             onClick={registerPasskey}
+            type="button"
           >
             Register Passkey
           </button>

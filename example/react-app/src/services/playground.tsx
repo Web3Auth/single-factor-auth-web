@@ -1,12 +1,12 @@
 import { CredentialResponse, googleLogout } from "@react-oauth/google";
 import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import { CHAIN_NAMESPACES, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
+import { CHAIN_NAMESPACES, IProvider, log, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
 // Import Single Factor Auth SDK for no redirect flow
 import { ADAPTER_EVENTS, decodeToken, Web3Auth } from "@web3auth/single-factor-auth";
 import { WalletServicesPlugin } from "@web3auth/wallet-services-plugin";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import RPC from "../evm.ethers";
 import { shouldSupportPasskey } from "../utils";
@@ -41,7 +41,7 @@ export interface IPlaygroundContext {
   signMessage: () => Promise<string>;
   sendTransaction: () => void;
   toggleCancelModal: (isOpen: boolean) => void;
-  toggleRegisterPasskeyModal: () => void;
+  toggleRegisterPasskeyModal: (isOpen: boolean) => void;
   resetConsole: () => void;
 }
 
@@ -129,39 +129,56 @@ export function Playground({ children }: IPlaygroundProps) {
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
-  const onSuccess = async (response: CredentialResponse): Promise<void> => {
-    try {
-      if (!web3authSFAuth) {
-        console.log("Web3Auth Single Factor Auth SDK not initialized yet");
-        return;
-      }
-      setIsLoading(true);
-      const idToken = response.credential;
-      if (!idToken) {
-        setIsLoading(false);
-        return;
-      }
-      const { payload } = decodeToken(idToken);
-      await web3authSFAuth.connect({
-        verifier,
-        verifierId: (payload as any).email,
-        idToken: idToken!,
-      });
-      setIsLoading(false);
-      const res = await plugin?.listAllPasskeys();
-      if (res && Object.values(res).length === 0) {
-        setShowRegisterPasskeyModal(true);
-      }
-      uiConsole();
-    } catch (err) {
-      // Single Factor Auth SDK throws an error if the user has already enabled MFA
-      // One can use the Web3AuthNoModal SDK to handle this case
-      setIsLoading(false);
-      console.error(err);
+  const uiConsole = (...args: unknown[]) => {
+    log.info(...args);
+  };
+
+  const toggleCancelModal = (isOpen: boolean) => {
+    if (isOpen) {
+      setTimeout(() => {
+        setIsCancelModalOpen(true);
+      }, 0);
+    } else {
+      setIsCancelModalOpen(false);
     }
   };
 
-  const loginWithPasskey = async () => {
+  const onSuccess = useCallback(
+    async (response: CredentialResponse): Promise<void> => {
+      try {
+        if (!web3authSFAuth) {
+          log.info("Web3Auth Single Factor Auth SDK not initialized yet");
+          return;
+        }
+        setIsLoading(true);
+        const idToken = response.credential;
+        if (!idToken) {
+          setIsLoading(false);
+          return;
+        }
+        const { payload } = decodeToken<{ email: string }>(idToken);
+        await web3authSFAuth.connect({
+          verifier,
+          verifierId: payload.email,
+          idToken: idToken!,
+        });
+        setIsLoading(false);
+        const res = await plugin?.listAllPasskeys();
+        if (res && Object.values(res).length === 0) {
+          setShowRegisterPasskeyModal(true);
+        }
+        uiConsole();
+      } catch (err) {
+        // Single Factor Auth SDK throws an error if the user has already enabled MFA
+        // One can use the Web3AuthNoModal SDK to handle this case
+        setIsLoading(false);
+        log.error(err);
+      }
+    },
+    [plugin, web3authSFAuth]
+  );
+
+  const loginWithPasskey = useCallback(async () => {
     try {
       setIsLoading(true);
       if (!plugin) throw new Error("Passkey plugin not initialized");
@@ -173,14 +190,14 @@ export function Playground({ children }: IPlaygroundProps) {
       await plugin.loginWithPasskey();
       uiConsole("Passkey logged in successfully");
     } catch (error) {
-      console.error((error as Error).message);
+      log.error((error as Error).message);
       toggleCancelModal(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [plugin]);
 
-  const registerPasskey = async () => {
+  const registerPasskey = useCallback(async () => {
     try {
       setIsLoading(true);
       setShowRegisterPasskeyModal(false);
@@ -193,9 +210,9 @@ export function Playground({ children }: IPlaygroundProps) {
         uiConsole("Browser not supported");
         return;
       }
-      const userInfo = await web3authSFAuth?.getUserInfo();
+      const sfaAuthUserInfo = await web3authSFAuth?.getUserInfo();
       const res = await plugin?.registerPasskey({
-        username: `google|${userInfo?.email || userInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
+        username: `google|${sfaAuthUserInfo?.email || sfaAuthUserInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
       });
       if (res) uiConsole("Passkey saved successfully");
     } catch (error: unknown) {
@@ -204,18 +221,18 @@ export function Playground({ children }: IPlaygroundProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [hasPasskeys, plugin, web3authSFAuth]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (!web3authSFAuth) {
       throw new Error("web3auth sfa auth not initialized.");
     }
     googleLogout();
     await web3authSFAuth.logout();
     uiConsole("Logged out");
-  };
+  }, [web3authSFAuth]);
 
-  const getUserInfo = async (): Promise<OpenloginUserInfo | null> => {
+  const getUserInfo = useCallback(async (): Promise<OpenloginUserInfo | null> => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
       const useInfo = await web3authSFAuth?.getUserInfo();
       setPlaygroundConsoleTitle("User Info Console");
@@ -223,29 +240,29 @@ export function Playground({ children }: IPlaygroundProps) {
       uiConsole(useInfo);
     }
     return null;
-  };
+  }, [web3authSFAuth]);
 
-  const showCheckout = async () => {
+  const showCheckout = useCallback(async () => {
     if (!wsPlugin) {
       uiConsole("wallet services plugin not initialized yet");
       return;
     }
     if (chainId !== chainConfigMain.chainId) {
-      console.warn("check: checkout not supported on testnets");
+      log.warn("check: checkout not supported on testnets");
       return;
     }
     await wsPlugin.showCheckout();
-  };
+  }, [chainId, wsPlugin]);
 
-  const showWalletUI = async () => {
+  const showWalletUI = useCallback(async () => {
     if (!wsPlugin) {
       uiConsole("wallet services plugin not initialized yet");
       return;
     }
     await wsPlugin.showWalletUi();
-  };
+  }, [wsPlugin]);
 
-  const signMessage = async (): Promise<string> => {
+  const signMessage = useCallback(async (): Promise<string> => {
     if (!provider) {
       uiConsole("No provider found");
       return "";
@@ -259,9 +276,9 @@ export function Playground({ children }: IPlaygroundProps) {
     })) as string;
     uiConsole(signedMessage);
     return signedMessage;
-  };
+  }, [address, provider, wsPlugin]);
 
-  const sendTransaction = async () => {
+  const sendTransaction = useCallback(async () => {
     if (!provider) {
       uiConsole("No provider found");
       return;
@@ -269,37 +286,23 @@ export function Playground({ children }: IPlaygroundProps) {
     const rpc = new RPC(provider);
     const result = await rpc.signAndSendTransaction();
     uiConsole(result);
-  };
+  }, [provider]);
 
-  const showWalletScanner = async () => {
+  const showWalletScanner = useCallback(async () => {
     if (!wsPlugin) {
       uiConsole("wallet services plugin not initialized yet");
       return;
     }
     await wsPlugin.showWalletConnectScanner();
-  };
+  }, [wsPlugin]);
 
-  const toggleCancelModal = (isOpen: boolean) => {
-    if (isOpen) {
-      setTimeout(() => {
-        setIsCancelModalOpen(true);
-      }, 0);
-    } else {
-      setIsCancelModalOpen(false);
-    }
-  };
-
-  const toggleRegisterPasskeyModal = () => {
-    setShowRegisterPasskeyModal((prev) => !prev);
+  const toggleRegisterPasskeyModal = (isOpen: boolean) => {
+    setShowRegisterPasskeyModal(isOpen);
   };
 
   useEffect(() => {
     setIsLoggedIn(!!(provider && web3authSFAuth));
   }, [provider, web3authSFAuth]);
-
-  const uiConsole = (...args: unknown[]) => {
-    console.log(...args);
-  };
 
   const resetConsole = () => {
     setPlaygroundConsoleData("");
@@ -309,17 +312,17 @@ export function Playground({ children }: IPlaygroundProps) {
   useEffect(() => {
     const init = async () => {
       try {
-        const provider = new EthereumPrivateKeyProvider({ config: { chainConfig: chainConfigMain } });
+        const ethPrivateKeyProvider = new EthereumPrivateKeyProvider({ config: { chainConfig: chainConfigMain } });
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
           web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
-          privateKeyProvider: provider,
+          privateKeyProvider: ethPrivateKeyProvider,
         });
-        const plugin = new PasskeysPlugin();
-        web3authSfa?.addPlugin(plugin);
-        const wsPlugin = new WalletServicesPlugin({
+        const passkeyPlugin = new PasskeysPlugin();
+        web3authSfa?.addPlugin(passkeyPlugin);
+        const walletServicePlugin = new WalletServicesPlugin({
           walletInitOptions: {
             whiteLabel: {
               logoLight: "https://web3auth.io/images/web3auth-logo.svg",
@@ -328,28 +331,28 @@ export function Playground({ children }: IPlaygroundProps) {
             confirmationStrategy: "modal",
           },
         });
-        web3authSfa?.addPlugin(wsPlugin);
-        setWsPlugin(wsPlugin);
-        setPlugin(plugin);
+        web3authSfa?.addPlugin(walletServicePlugin);
+        setWsPlugin(walletServicePlugin);
+        setPlugin(passkeyPlugin);
         web3authSfa.on(ADAPTER_EVENTS.CONNECTED, async (data) => {
-          console.log("sfa:connected", data);
-          console.log("sfa:state", web3authSfa?.state);
+          log.info("sfa:connected", data);
+          log.info("sfa:state", web3authSfa?.state);
           setProvider(web3authSfa.provider);
           if (web3authSfa.state.userInfo) setUserInfo(web3authSfa.state.userInfo);
 
           // Get account data
 
-          const rpc = new RPC(provider);
+          const rpc = new RPC(ethPrivateKeyProvider);
           const account = await rpc.getAccounts();
           if (account) setAddress(account);
 
-          const balance = await rpc.getBalance();
-          setBalance(balance);
+          const rpcBalance = await rpc.getBalance();
+          setBalance(rpcBalance);
 
-          const chainId = await rpc.getChainId();
-          setChainId(`0x${chainId}`);
+          const rpcChainId = await rpc.getChainId();
+          setChainId(`0x${rpcChainId}`);
 
-          const res = (await plugin?.listAllPasskeys()) as unknown as Record<string, string>[];
+          const res = (await passkeyPlugin?.listAllPasskeys()) as unknown as Record<string, string>[];
           setHasPasskeys(res.length > 0);
           setPasskeys(
             res.map((passkey) => {
@@ -362,46 +365,75 @@ export function Playground({ children }: IPlaygroundProps) {
             })
           );
         });
+
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
-          console.log("sfa:disconnected");
+          log.info("sfa:disconnected");
           setProvider(null);
         });
+
         setWeb3authSFAuth(web3authSfa);
         await web3authSfa.init();
-        (window as any).web3auth = web3authSfa;
+        window.web3auth = web3authSfa;
       } catch (error) {
-        console.error(error);
+        log.error(error);
       }
     };
 
     init();
   }, []);
-  const contextProvider = {
-    address,
-    balance,
-    chainId,
-    isLoggedIn,
-    isLoading,
-    userInfo,
-    playgroundConsoleTitle,
-    playgroundConsoleData,
-    hasPasskeys,
-    passkeys,
-    isCancelModalOpen,
-    showRegisterPasskeyModal,
-    onSuccess,
-    loginWithPasskey,
-    registerPasskey,
-    logout,
-    getUserInfo,
-    showCheckout,
-    showWalletUI,
-    showWalletScanner,
-    signMessage,
-    sendTransaction,
-    toggleCancelModal,
-    toggleRegisterPasskeyModal,
-    resetConsole,
-  };
+
+  const contextProvider = useMemo(
+    () => ({
+      address,
+      balance,
+      chainId,
+      isLoggedIn,
+      isLoading,
+      userInfo,
+      playgroundConsoleTitle,
+      playgroundConsoleData,
+      hasPasskeys,
+      passkeys,
+      isCancelModalOpen,
+      showRegisterPasskeyModal,
+      onSuccess,
+      loginWithPasskey,
+      registerPasskey,
+      logout,
+      getUserInfo,
+      showCheckout,
+      showWalletUI,
+      showWalletScanner,
+      signMessage,
+      sendTransaction,
+      toggleCancelModal,
+      toggleRegisterPasskeyModal,
+      resetConsole,
+    }),
+    [
+      address,
+      balance,
+      chainId,
+      isLoggedIn,
+      isLoading,
+      userInfo,
+      playgroundConsoleTitle,
+      playgroundConsoleData,
+      hasPasskeys,
+      passkeys,
+      isCancelModalOpen,
+      showRegisterPasskeyModal,
+      onSuccess,
+      loginWithPasskey,
+      registerPasskey,
+      logout,
+      getUserInfo,
+      showCheckout,
+      showWalletUI,
+      showWalletScanner,
+      signMessage,
+      sendTransaction,
+    ]
+  );
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
 }
