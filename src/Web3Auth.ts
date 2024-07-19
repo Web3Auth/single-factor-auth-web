@@ -15,6 +15,7 @@ import {
   IPlugin,
   IProvider,
   log,
+  PLUGIN_STATUS,
   saveToken,
   WALLET_ADAPTERS,
   WalletInitializationError,
@@ -323,6 +324,16 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     if (this.plugins[plugin.name]) throw WalletInitializationError.duplicateAdapterError(`Plugin ${plugin.name} already exist`);
 
     this.plugins[plugin.name] = plugin;
+    if (this.status === ADAPTER_STATUS.CONNECTED && this.connectedAdapterName) {
+      // web3auth is already connected. can initialize plugins
+      this.connectToPlugins();
+    }
+
+    if (plugin.name === PASSKEYS_PLUGIN && (this.status === ADAPTER_STATUS.READY || this.status === ADAPTER_STATUS.CONNECTED)) {
+      // this does return a Promise but we don't need to wait here.
+      // as its mostly a sync function.
+      this.plugins[PASSKEYS_PLUGIN].initWithWeb3Auth(this);
+    }
     return this;
   }
 
@@ -432,22 +443,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private subscribeToEvents() {
     this.on(ADAPTER_EVENTS.CONNECTED, async () => {
-      const localPlugins = Object.values(this.plugins).filter((plugin) => plugin.name !== PASSKEYS_PLUGIN);
-      localPlugins.forEach(async (plugin) => {
-        try {
-          if (!plugin.SUPPORTED_ADAPTERS.includes(WALLET_ADAPTERS.SFA)) {
-            return;
-          }
-          await plugin.initWithWeb3Auth(this);
-          await plugin.connect({ sessionId: this.sessionManager.sessionId, sessionNamespace: this.sessionNamespace });
-        } catch (error: unknown) {
-          // swallow error if connector adapter doesn't supports this plugin.
-          if ((error as Web3AuthError).code === 5211) {
-            return;
-          }
-          log.error(error);
-        }
-      });
+      this.connectToPlugins();
     });
 
     this.on(ADAPTER_EVENTS.DISCONNECTED, async () => {
@@ -466,6 +462,26 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
           log.error(error);
         }
       });
+    });
+  }
+
+  private connectToPlugins() {
+    const localPlugins = Object.values(this.plugins).filter((plugin) => plugin.name !== PASSKEYS_PLUGIN);
+    localPlugins.forEach(async (plugin) => {
+      try {
+        if (!plugin.SUPPORTED_ADAPTERS.includes(WALLET_ADAPTERS.SFA)) {
+          return;
+        }
+        if (plugin.status === PLUGIN_STATUS.CONNECTED) return;
+        await plugin.initWithWeb3Auth(this);
+        await plugin.connect({ sessionId: this.sessionManager.sessionId, sessionNamespace: this.sessionNamespace });
+      } catch (error: unknown) {
+        // swallow error if connector adapter doesn't supports this plugin.
+        if ((error as Web3AuthError).code === 5211) {
+          return;
+        }
+        log.error(error);
+      }
     });
   }
 
