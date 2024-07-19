@@ -38,7 +38,7 @@ const Dialog = forwardRef<Handle, Props>(function Dialog({ children, closeDialog
       effectRef.addEventListener("click", closeDialog);
 
       return () => {
-        effectRef.removeEventListener("scroll", closeDialog);
+        effectRef.removeEventListener("click", closeDialog);
       };
     }
 
