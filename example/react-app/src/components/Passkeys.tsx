@@ -1,11 +1,11 @@
-import Card from "./Card";
-import { usePlayground } from "../services/playground";
 import keyIcon from "../assets/keyIcon.svg";
-import Button from "./Button";
-import Divider from "./Divider";
+import { usePlayground } from "../services/playground";
 import Badge from "./Badge";
+import Button from "./Button";
+import Card from "./Card";
+import Divider from "./Divider";
 
-const Passkeys = () => {
+function Passkeys() {
   const { hasPasskeys, passkeys, registerPasskey } = usePlayground();
 
   return (
@@ -28,7 +28,7 @@ const Passkeys = () => {
 
       {hasPasskeys && (
         <div className="divide-y divide-app-gray-200 ">
-          {passkeys.map((passkey, index) => (
+          {passkeys.map((passkey) => (
             <div key={passkey.id} className="flex items-center py-4">
               <div className="mr-2">
                 <img src={keyIcon} className="text-app-gray-900 w-5 h-5" alt="key" />
@@ -44,5 +44,5 @@ const Passkeys = () => {
       )}
     </Card>
   );
-};
+}
 export default Passkeys;

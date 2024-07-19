@@ -8,7 +8,7 @@ const getWindowsVersion = (osVersion: string) => {
   if (match) return parseInt(match[1], 10);
   return 0;
 };
-  
+
 const checkIfOSIsSupported = (osName: string, osVersion: string) => {
   if (!PASSKEYS_ALLOWED_MAP.includes(osName)) return false;
   if (osName === bowser.OS_MAP.MacOS) return true;
@@ -60,6 +60,5 @@ export function shouldSupportPasskey(): { isBrowserSupported: boolean; isOsSuppo
 }
 
 export function browserSupportsWebAuthn() {
-  return (window?.PublicKeyCredential !== undefined &&
-      typeof window.PublicKeyCredential === 'function');
+  return window?.PublicKeyCredential !== undefined && typeof window.PublicKeyCredential === "function";
 }

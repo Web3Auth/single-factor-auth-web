@@ -1,21 +1,23 @@
-import Card from "./Card";
-import { usePlayground } from "../services/playground";
-import walletServices from "../assets/walletServices.svg";
-import Button from "./Button";
+import { log } from "@web3auth/base";
 import { useState } from "react";
 
-const WalletServices = () => {
+import walletServices from "../assets/walletServices.svg";
+import { usePlayground } from "../services/playground";
+import Button from "./Button";
+import Card from "./Card";
+
+function WalletServices() {
   const [signedMessage, setSignedMessage] = useState<string>("");
   const [signingState, setSigningState] = useState<"success" | "error" | "">("");
   const { showCheckout, showWalletUI, showWalletScanner, signMessage } = usePlayground();
 
-  async function onSignMessage() {
+  const onSignMessage = async () => {
     try {
       const signature = await signMessage();
       setSignedMessage(signature);
       setSigningState("success");
     } catch (error) {
-      console.error(error);
+      log.error(error);
       setSigningState("error");
     } finally {
       setTimeout(() => {
@@ -23,7 +25,7 @@ const WalletServices = () => {
         setSigningState("");
       }, 3000);
     }
-  }
+  };
 
   return (
     <Card className="text-center">
@@ -52,12 +54,12 @@ const WalletServices = () => {
             {signedMessage && <div className="break-all text-xxs leading-tight mt-1">{signedMessage}</div>}
           </div>
         ) : (
-          <Button className="w-full" onClick={onSignMessage}>
+          <Button className="w-full" onClick={onSignMessage} type="button">
             Sign Personal Message
           </Button>
         )}
       </div>
     </Card>
   );
-};
+}
 export default WalletServices;
