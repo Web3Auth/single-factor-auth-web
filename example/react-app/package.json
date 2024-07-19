@@ -15,7 +15,7 @@
     "@web3auth/base": "^8.8.0",
     "@web3auth/ethereum-provider": "^8.10.2",
     "@web3auth/passkeys-sfa-plugin": "^8.0.1",
-    "@web3auth/single-factor-auth": "../../",
+    "@web3auth/single-factor-auth": "^8.0.2",
     "@web3auth/wallet-services-plugin": "^8.10.2",
     "bowser": "^2.11.0",
     "ethers": "^6.13.1",
@@ -49,9 +49,11 @@
     "buffer": "^6.0.3",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.7",
+    "lodash-es": "^4.17.21",
     "postcss": "^8.4.39",
     "prettier": "^3.3.3",
     "process": "^0.11.10",
+    "source-map-explorer": "^2.5.3",
     "tailwindcss": "^3.4.6",
     "vite": "^5.3.4"
   },
@@ -59,6 +61,7 @@
     "start": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
-    "lint": "eslint --fix 'src/**/*.ts' 'src/**/*.tsx'"
+    "lint": "eslint --fix 'src/**/*.ts' 'src/**/*.tsx'",
+    "analyze": "source-map-explorer build/assets/*.js build/assets/*.map --no-border-checks"
   }
 }

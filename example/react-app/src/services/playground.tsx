@@ -343,13 +343,9 @@ export function Playground({ children }: IPlaygroundProps) {
           // Get account data
 
           const rpc = new RPC(ethPrivateKeyProvider);
-          const account = await rpc.getAccounts();
-          if (account) setAddress(account);
-
-          const rpcBalance = await rpc.getBalance();
+          const [account, rpcBalance, rpcChainId] = await Promise.all([rpc.getAccounts(), rpc.getBalance(), rpc.getChainId()]);
+          setAddress(account);
           setBalance(rpcBalance);
-
-          const rpcChainId = await rpc.getChainId();
           setChainId(`0x${rpcChainId}`);
 
           const res = (await passkeyPlugin?.listAllPasskeys()) as unknown as Record<string, string>[];
