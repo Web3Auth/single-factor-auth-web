@@ -23,9 +23,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.25.0",
     "source-map-loader": "^5.0.0",
-    "typescript": "^5.5.3",
-    "web-vitals": "^4.2.1",
-    "web3": "^4.11.0"
+    "typescript": "^5.5.3"
   },
   "eslintConfig": {
     "extends": [
