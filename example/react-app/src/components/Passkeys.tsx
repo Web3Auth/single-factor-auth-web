@@ -1,4 +1,6 @@
 import keyIcon from "../assets/keyIcon.svg";
+import LoadingIcon from "../assets/loadingIcon.svg";
+import UnlinkIcon from "../assets/unlinkIcon.svg";
 import { usePlayground } from "../services/playground";
 import Badge from "./Badge";
 import Button from "./Button";
@@ -6,8 +8,7 @@ import Card from "./Card";
 import Divider from "./Divider";
 
 function Passkeys() {
-  const { hasPasskeys, passkeys, registerPasskey } = usePlayground();
-
+  const { hasPasskeys, passkeys, deletingPasskeyId, registerPasskey, unlinkPasskey } = usePlayground();
   return (
     <Card>
       <div className="mb-4">
@@ -37,6 +38,20 @@ function Passkeys() {
                 <h4 className="text-sm font-semibold text-app-gray-900 dark:text-app-white">{passkey.name}</h4>
                 <p className="text-xs text-app-gray-400">{passkey.detail1}</p>
                 <p className="text-xs text-app-gray-400">{passkey.detail2}</p>
+              </div>
+              <div className="ml-auto">
+                <button
+                  type="button"
+                  className="p-1 rounded-md hover:bg-app-gray-200 disabled:bg-app-gray-200 w-6 h-6 flex items-center justify-center"
+                  disabled={deletingPasskeyId === passkey.id}
+                  onClick={() => unlinkPasskey(passkey.id)}
+                >
+                  {deletingPasskeyId === passkey.id ? (
+                    <img src={LoadingIcon} className="w-5 h-5 animate-spin" alt="Loading" />
+                  ) : (
+                    <img src={UnlinkIcon} className="w-5 h-5" alt="Unlink" />
+                  )}
+                </button>
               </div>
             </div>
           ))}
