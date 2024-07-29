@@ -12,7 +12,7 @@ import RPC from "../evm.ethers";
 import { shouldSupportPasskey } from "../utils";
 
 type PasskeysData = {
-  id: string;
+  id: number;
   name: string;
   detail1: string;
   detail2: string;
@@ -28,11 +28,13 @@ export interface IPlaygroundContext {
   playgroundConsoleData: string;
   hasPasskeys: boolean;
   passkeys: PasskeysData[];
+  deletingPasskeyId: number | null;
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
+  unlinkPasskey: (id: number) => void;
   logout: () => void;
   getUserInfo: () => Promise<OpenloginUserInfo | null>;
   showCheckout: () => void;
@@ -56,11 +58,13 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   chainId: "",
   hasPasskeys: false,
   passkeys: [],
+  deletingPasskeyId: null,
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
+  unlinkPasskey: async () => null,
   logout: async () => null,
   getUserInfo: async () => null,
   showCheckout: async () => null,
@@ -125,6 +129,7 @@ export function Playground({ children }: IPlaygroundProps) {
   const [hasPasskeys, setHasPasskeys] = useState<boolean>(false);
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
   const [passkeys, setPasskeys] = useState<PasskeysData[]>([]);
+  const [deletingPasskeyId, setDeletingPasskeyId] = useState<number | null>(null);
 
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -178,6 +183,28 @@ export function Playground({ children }: IPlaygroundProps) {
     [plugin, web3authSFAuth]
   );
 
+  const getAllPasskeys = async (activePasskeyPlugin: PasskeysPlugin) => {
+    const res = (await activePasskeyPlugin?.listAllPasskeys()) as unknown as {
+      id: number;
+      provider_name: string;
+      browser: string;
+      browser_version: string;
+      os: string;
+      updated_at: string;
+    }[];
+    setHasPasskeys(res.length > 0);
+    setPasskeys(
+      res.map((passkey) => {
+        return {
+          id: passkey.id,
+          name: passkey.provider_name,
+          detail1: `${passkey.browser} ${passkey.browser_version} (${passkey.os})`,
+          detail2: new Date(passkey.updated_at).toLocaleString(),
+        };
+      })
+    );
+  };
+
   const loginWithPasskey = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -214,7 +241,10 @@ export function Playground({ children }: IPlaygroundProps) {
       const res = await plugin?.registerPasskey({
         username: `google|${sfaAuthUserInfo?.email || sfaAuthUserInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
       });
-      if (res) uiConsole("Passkey saved successfully");
+      if (res) {
+        await getAllPasskeys(plugin);
+        uiConsole("Passkey saved successfully");
+      }
     } catch (error: unknown) {
       if (!hasPasskeys) toggleCancelModal(true);
       uiConsole((error as Error).message);
@@ -222,6 +252,30 @@ export function Playground({ children }: IPlaygroundProps) {
       setIsLoading(false);
     }
   }, [hasPasskeys, plugin, web3authSFAuth]);
+
+  const unlinkPasskey = useCallback(
+    async (id: number) => {
+      if (!plugin) {
+        uiConsole("plugin not initialized yet");
+        return;
+      }
+
+      setDeletingPasskeyId(id);
+
+      try {
+        const success = await plugin.unregisterPasskey(id);
+        if (success) {
+          await getAllPasskeys(plugin);
+          uiConsole("Passkey deleted successfully");
+        }
+      } catch (error) {
+        uiConsole((error as Error).message);
+      } finally {
+        setDeletingPasskeyId(null);
+      }
+    },
+    [plugin]
+  );
 
   const logout = useCallback(async () => {
     if (!web3authSFAuth) {
@@ -347,19 +401,7 @@ export function Playground({ children }: IPlaygroundProps) {
           setAddress(account);
           setBalance(rpcBalance);
           setChainId(`0x${rpcChainId}`);
-
-          const res = (await passkeyPlugin?.listAllPasskeys()) as unknown as Record<string, string>[];
-          setHasPasskeys(res.length > 0);
-          setPasskeys(
-            res.map((passkey) => {
-              return {
-                id: passkey.id,
-                name: passkey.provider_name,
-                detail1: `${passkey.browser} ${passkey.browser_version} (${passkey.os})`,
-                detail2: new Date(passkey.updated_at).toLocaleString(),
-              };
-            })
-          );
+          getAllPasskeys(passkeyPlugin);
         });
 
         web3authSfa.on(ADAPTER_EVENTS.DISCONNECTED, () => {
@@ -390,11 +432,13 @@ export function Playground({ children }: IPlaygroundProps) {
       playgroundConsoleData,
       hasPasskeys,
       passkeys,
+      deletingPasskeyId,
       isCancelModalOpen,
       showRegisterPasskeyModal,
       onSuccess,
       loginWithPasskey,
       registerPasskey,
+      unlinkPasskey,
       logout,
       getUserInfo,
       showCheckout,
@@ -417,11 +461,13 @@ export function Playground({ children }: IPlaygroundProps) {
       playgroundConsoleData,
       hasPasskeys,
       passkeys,
+      deletingPasskeyId,
       isCancelModalOpen,
       showRegisterPasskeyModal,
       onSuccess,
       loginWithPasskey,
       registerPasskey,
+      unlinkPasskey,
       logout,
       getUserInfo,
       showCheckout,
