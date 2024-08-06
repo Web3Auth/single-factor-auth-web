@@ -184,14 +184,7 @@ export function Playground({ children }: IPlaygroundProps) {
   );
 
   const getAllPasskeys = async (activePasskeyPlugin: PasskeysPlugin) => {
-    const res = (await activePasskeyPlugin?.listAllPasskeys()) as unknown as {
-      id: number;
-      provider_name: string;
-      browser: string;
-      browser_version: string;
-      os: string;
-      updated_at: string;
-    }[];
+    const res = await activePasskeyPlugin?.listAllPasskeys();
     setHasPasskeys(res.length > 0);
     setPasskeys(
       res.map((passkey) => {
@@ -242,7 +235,9 @@ export function Playground({ children }: IPlaygroundProps) {
         username: `google|${sfaAuthUserInfo?.email || sfaAuthUserInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
       });
       if (res) {
-        await getAllPasskeys(plugin);
+        setTimeout(async () => {
+          await getAllPasskeys(plugin);
+        }, 500);
         uiConsole("Passkey saved successfully");
       }
     } catch (error: unknown) {
@@ -265,7 +260,9 @@ export function Playground({ children }: IPlaygroundProps) {
       try {
         const success = await plugin.unregisterPasskey(id);
         if (success) {
-          await getAllPasskeys(plugin);
+          setTimeout(async () => {
+            await getAllPasskeys(plugin);
+          }, 500);
           uiConsole("Passkey deleted successfully");
         }
       } catch (error) {
