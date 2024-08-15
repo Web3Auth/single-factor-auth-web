@@ -226,6 +226,8 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
    * @returns provider to connect
    */
   async connect(loginParams: LoginParams): Promise<IProvider | null> {
+    if (this.status === ADAPTER_STATUS.CONNECTED)
+      throw WalletLoginError.connectionError("Already connected. Please check status before calling connect.");
     if (this.status !== ADAPTER_STATUS.READY) throw WalletInitializationError.notReady("Please call init first.");
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
