@@ -1,50 +1,15 @@
 {
   "app": {
-    "title": "Web3Auth Web Vue Demo",
-    "description": "This is a demo of Web3Auth in a Vue.js app.",
+    "title": "Web3Auth SFA Web Vue Demo",
+    "description": "This is a demo of Web3Auth SFA in a Vue.js app.",
     "btnLogout": "Logout",
     "documentation": "Documentation",
     "network": "Network",
     "chain": "Chain",
-    "loginProviders": "Login provider",
     "adapters": "Adapters",
-    "greeting": "Let's configure Web3Auth!",
-    "enableWalletServicePlugin": "Enable Wallet Service Plugin",
-    "walletPlugin": {
-      "title": "Wallet Service Plugin",
-      "logoLight": "Logo Light",
-      "logoDark": "Logo Dark"
-    },
-    "whiteLabel": {
-      "title": "Enable White Label",
-      "appName": "App Name",
-      "appUrl": "App URL",
-      "defaultLanguage": "Default Language",
-      "logoLight": "Light Logo",
-      "logoDark": "Dark Logo",
-      "useLogoLoader": "Use Logo Loader",
-      "primaryColor": "Primary Color",
-      "onPrimaryColor": "On Primary Color"
-    },
-    "loginMethod": {
-      "name": "Name",
-      "description": "Description",
-      "logoHover": "Logo Hover",
-      "logoLight": "Logo Light",
-      "logoDark": "Logo Dark",
-      "mainOption": "Main Option",
-      "showOnModal": "on Modal?",
-      "showOnDesktop": "on Desktop?",
-      "showOnMobile": "on Mobile?"
-    },
-    "adapter": {
-      "sessionTime": "Session Time"
-    },
-    "chainNamespace": "Chain namespace",
+    "greeting": "Let's configure Web3Auth SFA!",
 
-    "w3aStatus": "Web3Auth status ::::: {status}",
-    "isConnected": "Is connected ::::: {isConnected}",
-    "isInitialized": "Is initialized ::::: {isInitialized}",
+    "chainNamespace": "Chain namespace",
     "buttons": {
       "btnClearConsole": "Clear Console",
       "btnGetUserInfo": "Get User Info",
@@ -61,7 +26,9 @@
       "btnSignAllTransactions": "Sign All Transactions",
       "btnShowWalletUI": "Show Wallet UI",
       "btnShowCheckout": "Show Checkout",
-      "btnShowWalletConnectScanner": "Show WalletConnect Scanner"
+      "btnShowWalletConnectScanner": "Show WalletConnect Scanner",
+      "btnRegisterPasskey": "Register Passkey",
+      "btnListAllPasskeys": "List All Passkeys"
     }
   }
 }
