@@ -1,24 +1,46 @@
 <script setup lang="ts">
-import { Button, Card, Select, Tab, Tabs, Tag, TextField, Toggle } from "@toruslabs/vue-components";
-import { CHAIN_NAMESPACES, ChainNamespaceType, IBaseProvider, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
+import { Button, Card, Select } from "@toruslabs/vue-components";
+import { CHAIN_NAMESPACES, ChainNamespaceType, CustomChainConfig, IBaseProvider, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
-import { LoginParams, Web3Auth } from "@web3auth/single-factor-auth";
+import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
+import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK, Web3Auth } from "@web3auth/single-factor-auth";
 import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
 import base64url from "base64url";
 import { computed, ref, watch } from "vue";
 
-import { chainConfigs, chainNamespaceOptions, clientIds, FormData, networkOptions } from "./config";
+import {
+  chainConfigs,
+  chainNamespaceOptions,
+  clientIds,
+  FormData,
+  GOOGLE,
+  networkOptions,
+  sapphireDevnetVerifierMap,
+  testnetVerifierMap,
+} from "./config";
+import { getAccounts, getBalance, getChainId, sendEth, signEthMessage, signTransaction } from "./services/ethHandlers";
+import { signAllTransactions, signAndSendTransaction, signMessage } from "./services/solHandlers";
 
 const web3Auth = ref<Web3Auth | null>(null);
-
+const passkeysPlugin = ref<PasskeysPlugin>(new PasskeysPlugin());
+const connected = computed(() => web3Auth.value?.connected);
+const provider = computed(() => web3Auth.value?.provider);
 const formData = ref<FormData>({
   network: WEB3AUTH_NETWORK.TESTNET,
   chainNamespace: CHAIN_NAMESPACES.EIP155,
   chain: "",
-  clientId: "",
-  verifier: "",
-  verifierId: "",
-  idToken: "",
+});
+
+const verifierMap = computed(() => {
+  const { network } = formData.value;
+  switch (network) {
+    case TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET:
+      return sapphireDevnetVerifierMap;
+    case TORUS_LEGACY_NETWORK.TESTNET:
+      return testnetVerifierMap;
+    default:
+      return sapphireDevnetVerifierMap;
+  }
 });
 
 const chainOptions = computed(() =>
@@ -28,33 +50,43 @@ const chainOptions = computed(() =>
   }))
 );
 
-const loginParams = computed<LoginParams>(() => ({
-  verifier: formData.value.verifier,
-  verifierId: formData.value.clientId,
-  idToken: formData.value.idToken,
-}));
-
-const privateKeyProvider = computed<IBaseProvider | null>(() => {
+const privateKeyProvider = computed<IBaseProvider<string> | null>(() => {
   const chainNamespace = formData.value.chainNamespace as ChainNamespaceType;
   const chainConfig = chainConfigs[chainNamespace].find((x) => x.chainId === formData.value.chain);
   switch (chainNamespace) {
     case CHAIN_NAMESPACES.EIP155:
-      return new EthereumPrivateKeyProvider({ config: { chainConfig } });
+      return new EthereumPrivateKeyProvider({ config: { chainConfig: chainConfig as CustomChainConfig } });
     case CHAIN_NAMESPACES.SOLANA:
-      return new SolanaPrivateKeyProvider({ config: { chainConfig } });
+      return new SolanaPrivateKeyProvider({ config: { chainConfig: chainConfig as CustomChainConfig } });
     default:
       return null;
   }
 });
-
+const printToConsole = (...args: unknown[]) => {
+  const el = document.querySelector("#console>pre");
+  const h1 = document.querySelector("#console>h1");
+  const consoleBtn = document.querySelector<HTMLElement>("#console>div.clear-console-btn");
+  if (h1) {
+    h1.innerHTML = args[0] as string;
+  }
+  if (el) {
+    el.innerHTML = JSON.stringify(args[1] || {}, null, 2);
+  }
+  if (consoleBtn) {
+    consoleBtn.style.display = "block";
+  }
+};
 const initW3A = async () => {
   if (!chainOptions.value.find((option) => option.value === formData.value.chain)) formData.value.chain = chainOptions.value[0]?.value;
   localStorage.setItem("state", JSON.stringify(formData.value));
   const w3A = new Web3Auth({
     web3AuthNetwork: formData.value.network,
-    privateKeyProvider: privateKeyProvider.value,
+    privateKeyProvider: privateKeyProvider.value as IBaseProvider<string>,
     clientId: clientIds[formData.value.network],
   });
+
+  w3A.addPlugin(passkeysPlugin.value);
+
   await w3A.init();
   web3Auth.value = w3A;
 };
@@ -71,19 +103,20 @@ watch(formData.value, async () => {
 });
 
 const onDoNothing = () => {};
-const onConnect = () => {
-  if (web3Auth.value) {
-    web3Auth.value.connect(loginParams.value);
-  }
-};
 
 const isDisplay = (key: string) => {
   switch (key) {
     case "form":
-      return true;
+      return !connected.value;
     case "btnLogout":
     case "appHeading":
-      return true;
+      return connected.value;
+    case "ethServices":
+      return formData.value.chainNamespace === CHAIN_NAMESPACES.EIP155;
+
+    case "solServices":
+      return formData.value.chainNamespace === CHAIN_NAMESPACES.SOLANA;
+
     default:
       return false;
   }
@@ -104,12 +137,89 @@ const decodeToken = <T,>(token: string): { header: { alg: string; typ: string; k
     payload: JSON.parse(base64url.decode(payload)) as T,
   };
 };
+
+const onLogout = async () => {
+  await web3Auth.value?.logout();
+};
+
+const onLoginWithPasskey = async () => {
+  await passkeysPlugin.value.loginWithPasskey();
+};
+
+const onRegisterPasskey = async () => {
+  const sfaAuthUserInfo = await web3Auth.value?.getUserInfo();
+  await passkeysPlugin.value.registerPasskey({
+    username: `google|${sfaAuthUserInfo?.email || sfaAuthUserInfo?.name} - ${new Date().toLocaleDateString("en-GB")}`,
+  });
+};
+
+const onListAllPasskeys = async () => {
+  const passkeys = await passkeysPlugin.value.listAllPasskeys();
+  printToConsole(passkeys);
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const onCallback = (res: any) => {
-  formData.value.idToken = res.credential;
-  formData.value.verifier = "google";
+const onCallback = async (res: any) => {
+  const { verifier } = verifierMap.value[GOOGLE];
+  const idToken = res.credential;
   const { payload } = decodeToken<{ email: string }>(res.credential);
-  formData.value.clientId = payload.email;
+  const verifierId = payload.email;
+  await web3Auth.value?.connect({ verifier, verifierId, idToken });
+};
+
+const onGetUserInfo = async () => {
+  const sfaAuthUserInfo = await web3Auth.value?.getUserInfo();
+  printToConsole("User Info", sfaAuthUserInfo);
+};
+
+const clearConsole = () => {
+  const el = document.querySelector("#console>pre");
+  const h1 = document.querySelector("#console>h1");
+  const consoleBtn = document.querySelector<HTMLElement>("#console>div.clear-console-btn");
+  if (h1) {
+    h1.innerHTML = "";
+  }
+  if (el) {
+    el.innerHTML = "";
+  }
+  if (consoleBtn) {
+    consoleBtn.style.display = "none";
+  }
+};
+const onSendEth = async () => {
+  await sendEth(provider.value as IProvider, printToConsole);
+};
+
+const onSignEthMessage = async () => {
+  await signEthMessage(provider.value as IProvider, printToConsole);
+};
+
+const onGetAccounts = async () => {
+  await getAccounts(provider.value as IProvider, printToConsole);
+};
+
+const getConnectedChainId = async () => {
+  await getChainId(provider.value as IProvider, printToConsole);
+};
+
+const onGetBalance = async () => {
+  await getBalance(provider.value as IProvider, printToConsole);
+};
+
+const onSignAndSendTransaction = async () => {
+  await signAndSendTransaction(provider.value as IProvider, printToConsole);
+};
+
+const onSignTransaction = async () => {
+  await signTransaction(provider.value as IProvider, printToConsole);
+};
+
+const onSignMessage = async () => {
+  await signMessage(provider.value as IProvider, printToConsole);
+};
+
+const onSignAllTransactions = async () => {
+  await signAllTransactions(provider.value as IProvider, printToConsole);
 };
 </script>
 
@@ -120,7 +230,7 @@ const onCallback = (res: any) => {
         <img :src="`/web3auth.svg`" class="h-8" alt="W3A Logo" />
       </a>
       <div class="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
-        <Button v-if="isDisplay('btnLogout')" block size="xs" pill variant="secondary" @click="onDoNothing">
+        <Button v-if="isDisplay('btnLogout')" block size="xs" pill variant="secondary" @click="onLogout">
           {{ $t("app.btnLogout") }}
         </Button>
         <Button v-else block size="xs" pill variant="secondary" @click="onDoNothing">
@@ -143,14 +253,6 @@ const onCallback = (res: any) => {
           <div class="text-3xl font-bold leading-tight text-center">{{ $t("app.greeting") }}</div>
 
           <Select
-            v-model="formData.network"
-            data-testid="selectNetwork"
-            :label="$t('app.network')"
-            :aria-label="$t('app.network')"
-            :placeholder="$t('app.network')"
-            :options="networkOptions"
-          />
-          <Select
             v-model="formData.chainNamespace"
             data-testid="selectChainNamespace"
             :label="$t('app.chainNamespace')"
@@ -166,32 +268,19 @@ const onCallback = (res: any) => {
             :placeholder="$t('app.chain')"
             :options="chainOptions"
           />
-          <TextField
-            v-model="formData.verifier"
-            data-testid="inputVerifier"
-            :label="$t('app.verifier')"
-            :aria-label="$t('app.verifier')"
-            :placeholder="$t('app.verifier')"
-          />
-          <TextField
-            v-model="formData.clientId"
-            data-testid="inputVerifierId"
-            :label="$t('app.verifierId')"
-            :aria-label="$t('app.verifierId')"
-            :placeholder="$t('app.verifierId')"
-          />
-          <TextField
-            v-model="formData.idToken"
-            data-testid="inputIdToken"
-            :label="$t('app.idToken')"
-            :aria-label="$t('app.idToken')"
-            :placeholder="$t('app.idToken')"
+          <Select
+            v-model="formData.network"
+            data-testid="selectNetwork"
+            :label="$t('app.network')"
+            :aria-label="$t('app.network')"
+            :placeholder="$t('app.network')"
+            :options="networkOptions"
           />
           <div class="flex justify-center mt-5 w-full gap-2">
             <GoogleLogin :callback="onCallback" />
           </div>
           <div class="flex justify-center mt-2 w-full gap-2">
-            <Button data-testid="loginButton" type="button" block size="md" :disabled="isDisabled('btnConnect')" @click="onConnect">
+            <Button data-testid="loginButton" type="button" block size="md" :disabled="isDisabled('btnConnect')" @click="onLoginWithPasskey">
               Login with passkey
             </Button>
           </div>
@@ -205,7 +294,7 @@ const onCallback = (res: any) => {
         </Card>
       </div>
       <div v-else class="grid gap-0">
-        <!-- <div class="grid grid-cols-8 gap-0">
+        <div class="grid grid-cols-8 gap-0">
           <div class="col-span-1"></div>
           <Card class="px-4 py-4 gird col-span-2">
             <div class="mb-2">
@@ -218,45 +307,40 @@ const onCallback = (res: any) => {
                 {{ $t("app.buttons.btnGetUserInfo") }}
               </Button>
             </div>
-            <Card v-if="isDisplay('walletServices')" class="px-4 py-4 gap-4 h-auto mb-2" :shadow="false">
-              <div class="text-xl font-bold leading-tight text-left mb-2">Wallet Service</div>
-              <Button block size="xs" pill class="mb-2" @click="showWalletUI">
-                {{ $t("app.buttons.btnShowWalletUI") }}
+            <Card class="px-4 py-4 gap-4 h-auto mb-2" :shadow="false">
+              <div class="text-xl font-bold leading-tight text-left mb-2">Passkey function</div>
+              <Button block size="xs" pill class="mb-2" @click="onRegisterPasskey">
+                {{ $t("app.buttons.btnRegisterPasskey") }}
               </Button>
-              <Button block size="xs" pill class="mb-2" @click="showWalletConnectScanner">
-                {{ $t("app.buttons.btnShowWalletConnectScanner") }}
-              </Button>
-              <Button block size="xs" pill class="mb-2" @click="showCheckout">
-                {{ $t("app.buttons.btnShowCheckout") }}
+              <Button block size="xs" pill class="mb-2" @click="onListAllPasskeys">
+                {{ $t("app.buttons.btnListAllPasskeys") }}
               </Button>
             </Card>
             <Card v-if="isDisplay('ethServices')" class="px-4 py-4 gap-4 h-auto mb-2" :shadow="false">
               <div class="text-xl font-bold leading-tight text-left mb-2">Sample Transaction</div>
               <Button block size="xs" pill class="mb-2" @click="onGetAccounts">
-                {{ t("app.buttons.btnGetAccounts") }}
+                {{ $t("app.buttons.btnGetAccounts") }}
               </Button>
               <Button block size="xs" pill class="mb-2" @click="onGetBalance">
-                {{ t("app.buttons.btnGetBalance") }}
+                {{ $t("app.buttons.btnGetBalance") }}
               </Button>
-              <Button block size="xs" pill class="mb-2" @click="onSendEth">{{ t("app.buttons.btnSendEth") }}</Button>
-              <Button block size="xs" pill class="mb-2" @click="onSignEthMessage">{{ t("app.buttons.btnSignEthMessage") }}</Button>
+              <Button block size="xs" pill class="mb-2" @click="onSendEth">{{ $t("app.buttons.btnSendEth") }}</Button>
+              <Button block size="xs" pill class="mb-2" @click="onSignEthMessage">{{ $t("app.buttons.btnSignEthMessage") }}</Button>
               <Button block size="xs" pill class="mb-2" @click="getConnectedChainId">
-                {{ t("app.buttons.btnGetConnectedChainId") }}
+                {{ $t("app.buttons.btnGetConnectedChainId") }}
               </Button>
             </Card>
             <Card v-if="isDisplay('solServices')" class="px-4 py-4 gap-4 h-auto mb-2" :shadow="false">
               <div class="text-xl font-bold leading-tight text-left mb-2">Sample Transaction</div>
-              <Button block size="xs" pill class="mb-2" @click="onAddChain">{{ t("app.buttons.btnAddChain") }}</Button>
-              <Button block size="xs" pill class="mb-2" @click="onSwitchChain">{{ t("app.buttons.btnSwitchChain") }}</Button>
               <Button block size="xs" pill class="mb-2" @click="onSignAndSendTransaction">
-                {{ t("app.buttons.btnSignAndSendTransaction") }}
+                {{ $t("app.buttons.btnSignAndSendTransaction") }}
               </Button>
               <Button block size="xs" pill class="mb-2" @click="onSignTransaction">
-                {{ t("app.buttons.btnSignTransaction") }}
+                {{ $t("app.buttons.btnSignTransaction") }}
               </Button>
-              <Button block size="xs" pill class="mb-2" @click="onSignMessage">{{ t("app.buttons.btnSignMessage") }}</Button>
+              <Button block size="xs" pill class="mb-2" @click="onSignMessage">{{ $t("app.buttons.btnSignMessage") }}</Button>
               <Button block size="xs" pill class="mb-2" @click="onSignAllTransactions">
-                {{ t("app.buttons.btnSignAllTransactions") }}
+                {{ $t("app.buttons.btnSignAllTransactions") }}
               </Button>
             </Card>
           </Card>
@@ -265,7 +349,7 @@ const onCallback = (res: any) => {
               class="whitespace-pre-line overflow-x-auto font-normal text-base leading-6 text-black break-words overflow-y-auto max-h-screen"
             ></pre>
           </Card>
-        </div> -->
+        </div>
       </div>
     </div>
   </main>
