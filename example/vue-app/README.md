@@ -1,25 +1,25 @@
-# Web3Auth x Vue Demo App
+# Web3Auth SFA x Vue Demo App
 
 ## Quickstart
 
-To use this demo app, you'll first have to build the Web3Auth packages.
+To use this demo app, you'll first have to build the Web3Auth SFA packages.
 
-### Build the `Web3Auth` packages
+### Build the `Web3Auth SFA` packages
 
 ```bash
 git clone https://github.com/Web3Auth/web3auth-web.git
-cd web3auth-web
+cd single-factor-auth-web
 npm install
-npm run bootstrap && npm run build
+npm run build
 ```
 
 ### Start the demo app
 
-> Inside `web3auth-web` directory.
+> Inside `single-factor-auth-web` directory.
 
 ```bash
 cd demo/vue-app
 npm install
 npm run dev
-# localhost:8080
+# localhost:3000
 ```
