@@ -9,7 +9,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@healerlab/vue3-facebook-login": "^0.1.7",
     "@solana/web3.js": "^1.95.2",
     "@toruslabs/constants": "^14.0.0",
     "@toruslabs/openlogin-utils": "^8.2.1",
