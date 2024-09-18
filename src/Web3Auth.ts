@@ -1,10 +1,8 @@
 import { ChainNamespaceType, signChallenge, verifySignedChallenge } from "@toruslabs/base-controllers";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
-import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
-import { OpenloginSessionManager } from "@toruslabs/openlogin-session-manager";
-import { subkey } from "@toruslabs/openlogin-subkey";
-import { BrowserStorage, OPENLOGIN_NETWORK, OPENLOGIN_NETWORK_TYPE, OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import Torus, { keccak256, TorusKey } from "@toruslabs/torus.js";
+import { SessionManager } from "@toruslabs/session-manager";
+import { keccak256, Torus, TorusKey } from "@toruslabs/torus.js";
+import { AuthUserInfo, BrowserStorage, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
 import {
   ADAPTER_EVENTS,
   ADAPTER_STATUS,
@@ -36,10 +34,11 @@ import {
   SessionData,
   UserAuthInfo,
   Web3AuthOptions,
+  Web3AuthSfaEvents,
 } from "./interface";
 import { decodeToken } from "./utils";
 
-class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
+export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWeb3Auth {
   readonly coreOptions: Web3AuthOptions;
 
   readonly connectedAdapterName = WALLET_ADAPTERS.SFA;
@@ -58,7 +57,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
-  private sessionManager!: OpenloginSessionManager<SessionData>;
+  private sessionManager!: SessionManager<SessionData>;
 
   private currentStorage!: BrowserStorage;
 
@@ -79,7 +78,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
 
     this.coreOptions = {
       ...options,
-      web3AuthNetwork: options.web3AuthNetwork || OPENLOGIN_NETWORK.MAINNET,
+      web3AuthNetwork: options.web3AuthNetwork || WEB3AUTH_NETWORK.MAINNET,
       sessionTime: options.sessionTime || 86400,
       storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
@@ -124,7 +123,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     });
 
     const sessionId = this.currentStorage.get<string>("sessionId");
-    this.sessionManager = new OpenloginSessionManager({
+    this.sessionManager = new SessionManager({
       sessionServerBaseUrl: this.coreOptions.storageServerUrl,
       sessionTime: this.coreOptions.sessionTime,
       sessionNamespace: this.sessionNamespace,
@@ -149,12 +148,12 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         await this.privKeyProvider.setupProvider(data.privKey);
         this.updateState(data);
         this.status = ADAPTER_STATUS.CONNECTED;
-        this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: true });
+        this.emit(ADAPTER_EVENTS.CONNECTED, { adapter: this.connectedAdapterName, provider: this.provider, reconnected: true });
       }
     }
     if (!this.state.privKey) {
       this.status = ADAPTER_STATUS.READY;
-      this.emit(ADAPTER_EVENTS.READY);
+      this.emit(ADAPTER_EVENTS.READY, this.connectedAdapterName);
     }
   }
 
@@ -196,7 +195,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
         this.SFA_ISSUER,
         this.coreOptions.sessionTime,
         this.coreOptions.clientId,
-        this.coreOptions.web3AuthNetwork as OPENLOGIN_NETWORK_TYPE
+        this.coreOptions.web3AuthNetwork as WEB3AUTH_NETWORK_TYPE
       );
       saveToken(accounts[0] as string, "SFA", idToken);
       return {
@@ -281,7 +280,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     } catch (error) {
       decodedUserInfo = loginParams.fallbackUserInfo;
     }
-    const userInfo: OpenloginUserInfo = {
+    const userInfo: AuthUserInfo = {
       name: decodedUserInfo.name || decodedUserInfo.nickname || "",
       email: decodedUserInfo.email || "",
       profileImage: decodedUserInfo.picture || "",
@@ -317,7 +316,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     this.emit(ADAPTER_EVENTS.DISCONNECTED);
   }
 
-  public async getUserInfo(): Promise<OpenloginUserInfo> {
+  public async getUserInfo(): Promise<AuthUserInfo> {
     if (!this.connected) throw WalletLoginError.userNotLoggedIn();
     return this.state.userInfo;
   }
@@ -351,14 +350,14 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     await this.privKeyProvider.setupProvider(finalPrivKey);
 
     // save the data in the session.
-    const sessionId = OpenloginSessionManager.generateRandomSessionKey();
+    const sessionId = SessionManager.generateRandomSessionKey();
     this.sessionManager.sessionId = sessionId;
 
     const { idToken } = await this.authenticateUser().catch((_) => ({ idToken: "" }));
     if (params.userInfo) {
       params.userInfo.idToken = idToken;
     } else {
-      params.userInfo = { idToken } as OpenloginUserInfo;
+      params.userInfo = { idToken } as AuthUserInfo;
     }
 
     await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo: params.userInfo, signatures, passkeyToken });
@@ -366,7 +365,7 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     // update the local state.
     this.updateState({ privKey: finalPrivKey, basePrivKey: privKey, userInfo: params.userInfo, signatures, passkeyToken });
     this.currentStorage.set("sessionId", sessionId);
-    this.emit(ADAPTER_EVENTS.CONNECTED, { reconnected: false });
+    this.emit(ADAPTER_EVENTS.CONNECTED, { adapter: this.connectedAdapterName, provider: this.provider, reconnected: false });
     this.status = ADAPTER_STATUS.CONNECTED;
   }
 
@@ -496,5 +495,3 @@ class Web3Auth extends SafeEventEmitter implements IWeb3Auth {
     return signedMessage as string;
   }
 }
-
-export default Web3Auth;

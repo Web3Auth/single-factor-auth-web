@@ -1,5 +1,5 @@
 import { CredentialResponse, googleLogout } from "@react-oauth/google";
-import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
+import { AuthUserInfo } from "@web3auth/auth";
 import { CHAIN_NAMESPACES, IProvider, log, WEB3AUTH_NETWORK } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
@@ -23,7 +23,7 @@ export interface IPlaygroundContext {
   chainId: string;
   isLoggedIn: boolean;
   isLoading: boolean;
-  userInfo: OpenloginUserInfo | null;
+  userInfo: AuthUserInfo | null;
   playgroundConsoleTitle: string;
   playgroundConsoleData: string;
   hasPasskeys: boolean;
@@ -36,7 +36,7 @@ export interface IPlaygroundContext {
   registerPasskey: () => void;
   unlinkPasskey: (id: number) => void;
   logout: () => void;
-  getUserInfo: () => Promise<OpenloginUserInfo | null>;
+  getUserInfo: () => Promise<AuthUserInfo | null>;
   showCheckout: () => void;
   showWalletUI: () => void;
   showWalletScanner: () => void;
@@ -122,7 +122,7 @@ export function Playground({ children }: IPlaygroundProps) {
   const [wsPlugin, setWsPlugin] = useState<WalletServicesPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userInfo, setUserInfo] = useState<OpenloginUserInfo | null>(null);
+  const [userInfo, setUserInfo] = useState<AuthUserInfo | null>(null);
   const [address, setAddress] = useState<string>("");
   const [balance, setBalance] = useState<string>("");
   const [chainId, setChainId] = useState<string>("");
@@ -283,7 +283,7 @@ export function Playground({ children }: IPlaygroundProps) {
     uiConsole("Logged out");
   }, [web3authSFAuth]);
 
-  const getUserInfo = useCallback(async (): Promise<OpenloginUserInfo | null> => {
+  const getUserInfo = useCallback(async (): Promise<AuthUserInfo | null> => {
     if (web3authSFAuth && web3authSFAuth?.connected) {
       const useInfo = await web3authSFAuth?.getUserInfo();
       setPlaygroundConsoleTitle("User Info Console");
