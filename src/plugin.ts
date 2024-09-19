@@ -1,4 +1,4 @@
-import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
+import { SafeEventEmitter } from "@web3auth/auth";
 
 import { type IWeb3Auth } from "./interface";
 

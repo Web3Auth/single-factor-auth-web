@@ -1,8 +1,18 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { OpenloginUserInfo } from "@toruslabs/openlogin-utils";
-import { CustomChainConfig, type IBaseProvider, IProvider, IWeb3AuthCore, IWeb3AuthCoreOptions, SafeEventEmitterProvider } from "@web3auth/base";
+import { AuthUserInfo } from "@web3auth/auth";
+import {
+  type AdapterEvents,
+  CustomChainConfig,
+  type IBaseProvider,
+  IProvider,
+  IWeb3AuthCore,
+  IWeb3AuthCoreOptions,
+  SafeEventEmitterProvider,
+} from "@web3auth/base";
 
 import { ADAPTER_STATUS } from "./constants";
+
+export type Web3AuthSfaEvents = AdapterEvents;
 
 export interface TorusSubVerifierInfo {
   verifier: string;
@@ -61,7 +71,7 @@ export interface Auth0UserInfo {
 export interface SessionData {
   basePrivKey?: string;
   privKey?: string;
-  userInfo?: OpenloginUserInfo;
+  userInfo?: AuthUserInfo;
   signatures?: string[];
   passkeyToken?: string;
 }
@@ -83,7 +93,7 @@ export interface DeletePasskeyParams {
 
 export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_STATUS];
 
-export type IFinalizeLoginParams = { privKey: string; userInfo: OpenloginUserInfo; signatures?: string[]; passkeyToken?: string };
+export type IFinalizeLoginParams = { privKey: string; userInfo: AuthUserInfo; signatures?: string[]; passkeyToken?: string };
 
 export interface IWeb3Auth extends IWeb3AuthCore {
   readonly coreOptions: Web3AuthOptions;
@@ -95,7 +105,7 @@ export interface IWeb3Auth extends IWeb3AuthCore {
   connect(loginParams: LoginParams): Promise<SafeEventEmitterProvider | null>;
   addChain(chainConfig: CustomChainConfig): Promise<void>;
   switchChain(params: { chainId: string }): Promise<void>;
-  getUserInfo(): Promise<OpenloginUserInfo>;
+  getUserInfo(): Promise<AuthUserInfo>;
   _finalizeLogin(params: IFinalizeLoginParams): Promise<void>;
   _getBasePrivKey(): string;
 }
