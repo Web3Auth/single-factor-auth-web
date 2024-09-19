@@ -36,7 +36,7 @@ npm install --save @web3auth/single-factor-auth
 
 Hop on to the [Web3Auth Dashboard](https://dashboard.web3auth.io/) and create a new project. Use the Client ID of the project to start your integration.
 
-![Web3Auth Dashboard](https://user-images.githubusercontent.com/6962565/237006695-0a9e962f-fbc9-45cb-9fee-3ff19671d361.png)
+![Web3Auth Dashboard](https://camo.githubusercontent.com/15b4c47aed7958ed46b82d4e1cc882931fa378dc42328f67759007a341f593de/68747470733a2f2f6769746875622d70726f64756374696f6e2d757365722d61737365742d3632313064662e73332e616d617a6f6e6177732e636f6d2f363936323536352f3237323737393436342d30343366363338332d653637312d346161352d383066622d6563383763353639653561622e706e67)
 
 ### Initialize Web3Auth for your preferred blockchain
 
