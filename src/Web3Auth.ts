@@ -2,7 +2,7 @@ import { ChainNamespaceType, signChallenge, verifySignedChallenge } from "@torus
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SessionManager } from "@toruslabs/session-manager";
 import { keccak256, Torus, TorusKey } from "@toruslabs/torus.js";
-import { AuthUserInfo, IStorage, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
+import { AuthUserInfo, IStorage, MemoryStore, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
 import {
   ADAPTER_EVENTS,
   ADAPTER_STATUS,
@@ -514,8 +514,10 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
   }
 
   private getStorage(storage: "session" | "local" | IAsyncStorage): IAsyncStorage | IStorage {
-    if (!storage || storage === "local") return window.localStorage;
-    if (storage === "session") return window.sessionStorage;
+    if (typeof window !== "undefined") {
+      if (!storage || storage === "local") return window.localStorage;
+      if (storage === "session") return window.sessionStorage;
+    } else if (!storage || typeof storage === "string") return new MemoryStore();
     return storage;
   }
 }
