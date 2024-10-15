@@ -1,6 +1,5 @@
 #import "AppDelegate.h"
 #import <Firebase.h>
-
 #import <React/RCTBundleURLProvider.h>
 
 @implementation AppDelegate
@@ -8,7 +7,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   [FIRApp configure];
-  self.moduleName = @"web3authsfafirebase";
+  self.moduleName = @"mpccorekitrnquickstart";
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};
@@ -17,6 +16,11 @@
 }
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
+{
+  return [self bundleURL];
+}
+
+- (NSURL *)bundleURL
 {
 #if DEBUG
   return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];

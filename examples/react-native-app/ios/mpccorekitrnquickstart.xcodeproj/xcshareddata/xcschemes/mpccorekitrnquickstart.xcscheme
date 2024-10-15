@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "web3authsfafirebase.app"
-               BlueprintName = "web3authsfafirebase"
-               ReferencedContainer = "container:web3authsfafirebase.xcodeproj">
+               BuildableName = "mpccorekitrnquickstart.app"
+               BlueprintName = "mpccorekitrnquickstart"
+               ReferencedContainer = "container:mpccorekitrnquickstart.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "web3authsfafirebaseTests.xctest"
-               BlueprintName = "web3authsfafirebaseTests"
-               ReferencedContainer = "container:web3authsfafirebase.xcodeproj">
+               BuildableName = "mpccorekitrnquickstartTests.xctest"
+               BlueprintName = "mpccorekitrnquickstartTests"
+               ReferencedContainer = "container:mpccorekitrnquickstart.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "web3authsfafirebase.app"
-            BlueprintName = "web3authsfafirebase"
-            ReferencedContainer = "container:web3authsfafirebase.xcodeproj">
+            BuildableName = "mpccorekitrnquickstart.app"
+            BlueprintName = "mpccorekitrnquickstart"
+            ReferencedContainer = "container:mpccorekitrnquickstart.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "web3authsfafirebase.app"
-            BlueprintName = "web3authsfafirebase"
-            ReferencedContainer = "container:web3authsfafirebase.xcodeproj">
+            BuildableName = "mpccorekitrnquickstart.app"
+            BlueprintName = "mpccorekitrnquickstart"
+            ReferencedContainer = "container:mpccorekitrnquickstart.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

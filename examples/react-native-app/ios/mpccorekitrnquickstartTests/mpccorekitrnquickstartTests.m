@@ -7,11 +7,11 @@
 #define TIMEOUT_SECONDS 600
 #define TEXT_TO_LOOK_FOR @"Welcome to React"
 
-@interface web3authsfafirebaseTests : XCTestCase
+@interface mpccorekitrnquickstartTests : XCTestCase
 
 @end
 
-@implementation web3authsfafirebaseTests
+@implementation mpccorekitrnquickstartTests
 
 - (BOOL)findSubviewInView:(UIView *)view matching:(BOOL (^)(UIView *view))test
 {
