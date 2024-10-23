@@ -30,6 +30,7 @@ import {
   Auth0UserInfo,
   IAsyncStorage,
   IFinalizeLoginParams,
+  ISecureStore,
   IWeb3Auth,
   LoginParams,
   PrivateKeyProvider,
@@ -41,7 +42,7 @@ import {
 import { decodeToken } from "./utils";
 
 export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWeb3Auth {
-  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage };
+  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage | ISecureStore };
 
   readonly connectedAdapterName = WALLET_ADAPTERS.SFA;
 
@@ -513,7 +514,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     return this.coreOptions.mode === SDK_MODE.REACT_NATIVE || this.coreOptions.mode === SDK_MODE.NODE;
   }
 
-  private getStorage(storage: "session" | "local" | IAsyncStorage): IAsyncStorage | IStorage {
+  private getStorage(storage: "session" | "local" | IAsyncStorage): IAsyncStorage | IStorage | ISecureStore {
     if (typeof window !== "undefined") {
       if (!storage || storage === "local") return window.localStorage;
       if (storage === "session") return window.sessionStorage;

@@ -33,6 +33,25 @@ export interface IAsyncStorage {
   setItem(key: string, value: string): Promise<void>;
 }
 
+export interface ISecureStore {
+  /**
+   * Fetch the stored value associated with the provided key.
+   */
+
+  getItemAsync(key: string, options: unknown): Promise<string | null>;
+
+  /**
+   * Store a key–value pair.
+   */
+  setItemAsync(key: string, value: string, options: unknown): Promise<void>;
+
+  /**
+   * Delete the value associated with the provided key.
+   *
+   */
+  deleteItemAsync(key: string, options: unknown): Promise<void>;
+}
+
 export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" | "useCoreKitKey"> {
   /**
    * setting this to true returns the same key as web sdk (i.e., plug n play key)
@@ -123,7 +142,7 @@ export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_S
 export type IFinalizeLoginParams = { privKey: string; userInfo: AuthUserInfo; signatures?: string[]; passkeyToken?: string };
 
 export interface IWeb3Auth extends IWeb3AuthCore {
-  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage };
+  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage | ISecureStore };
   status: ADAPTER_STATUS_TYPE;
   provider: IProvider | null;
   connected: boolean;
