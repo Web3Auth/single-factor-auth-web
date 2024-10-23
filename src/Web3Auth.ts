@@ -210,13 +210,11 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
   }
 
   async addChain(chainConfig: CustomChainConfig): Promise<void> {
-    if (this.coreOptions.mode === SDK_MODE.NODE) throw WalletInitializationError.invalidParams("Not supported in this mode");
     if (this.status === ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.addChain(chainConfig);
   }
 
   switchChain(params: { chainId: string }): Promise<void> {
-    if (this.coreOptions.mode === SDK_MODE.NODE) throw WalletInitializationError.invalidParams("Not supported in this mode");
     if (this.status === ADAPTER_STATUS.NOT_READY) throw WalletInitializationError.notReady("Please call init first.");
     return this.privKeyProvider.switchChain(params);
   }
