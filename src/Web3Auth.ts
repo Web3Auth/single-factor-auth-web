@@ -514,7 +514,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     return this.coreOptions.mode === SDK_MODE.REACT_NATIVE || this.coreOptions.mode === SDK_MODE.NODE;
   }
 
-  private getStorage(storage: "session" | "local" | IAsyncStorage): IAsyncStorage | IStorage | ISecureStore {
+  private getStorage(storage: "session" | "local" | IAsyncStorage | ISecureStore): IAsyncStorage | IStorage | ISecureStore {
     if (typeof window !== "undefined") {
       if (!storage || storage === "local") return window.localStorage;
       if (storage === "session") return window.sessionStorage;

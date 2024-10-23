@@ -97,7 +97,7 @@ export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" |
    *  For asyncStorage, provide instance of IAsyncStorage.
    *
    */
-  storage?: IAsyncStorage | "session" | "local";
+  storage?: IAsyncStorage | ISecureStore | "session" | "local";
 }
 
 export type AggregateVerifierParams = {
