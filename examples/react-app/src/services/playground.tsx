@@ -463,7 +463,6 @@ export function Playground({ children }: IPlaygroundProps) {
             },
           });
         }
-        console.log(">>> aaProvider", { aaProvider, useAccountAbstraction });
 
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({

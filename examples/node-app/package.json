@@ -2,9 +2,10 @@
   "author": "MSA",
   "//IMP START": "IMP START - Web3Auth Installation",
   "dependencies": {
+    "@web3auth/account-abstraction-provider": "^9.3.0",
     "@web3auth/ethereum-provider": "^9.2.3",
     "@web3auth/node-sdk": "^4.0.0",
-    "@web3auth/single-factor-auth": "file:../../web3auth-single-factor-auth-9.0.0.tgz",
+    "@web3auth/single-factor-auth": "file:../../",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2"
   },
