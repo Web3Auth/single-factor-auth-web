@@ -81,6 +81,11 @@ export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" |
   privateKeyProvider: IBaseProvider<string>;
 
   /**
+   * Account abstraction provider for your chain namespace
+   */
+  accountAbstractionProvider?: IBaseProvider<IProvider>;
+
+  /**
    * Defines the mode of the SDK
    *
    * @defaultValue "web"
