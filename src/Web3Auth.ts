@@ -125,6 +125,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       clientId: this.coreOptions.clientId,
       enableOneKey: true,
       network: this.coreOptions.web3AuthNetwork,
+      serverTimeOffset: this.coreOptions.serverTimeOffset,
     });
 
     const sessionId = await this.currentStorage.get<string>("sessionId");
