@@ -125,11 +125,13 @@ export default function App() {
 
       // IMP START - Login
       const verifierId = parsedToken.sub;
+      uiConsole("trying to connect")
       await web3auth!.connect({
         verifier, // e.g. `web3auth-sfa-verifier` replace with your verifier name, and it has to be on the same network passed in init().
         verifierId, // e.g. `Yux1873xnibdui` or `name@email.com` replace with your verifier id(sub or email)'s value.
         idToken,
-      });
+      });      uiConsole("connected")
+
       // IMP END - Login
       setProvider(web3auth.provider);
 

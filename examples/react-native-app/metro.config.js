@@ -12,7 +12,7 @@ const config = {
             url: require.resolve("empty-module"), // url can be polyfilled here if needed
             zlib: require.resolve("empty-module"), // browserify-zlib can be polyfilled here if needed
             path: require.resolve("empty-module"),
-            crypto: require.resolve("crypto-browserify"),
+            crypto: require.resolve("empty-module"),
             stream: require.resolve("readable-stream"),
         },
         sourceExts: [...defaultConfig.resolver.sourceExts, 'svg'],

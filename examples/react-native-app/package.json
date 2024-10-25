@@ -17,11 +17,12 @@
     "@web3auth/base": "^9.2.3",
     "@web3auth/ethereum-provider": "^9.2.3",
     "@web3auth/single-factor-auth": "file:../../web3auth-single-factor-auth-9.0.0.tgz",
-    "ethers": "^6.13.2",
+    "ethers": "^5.7.2",
     "react": "18.3.1",
     "react-dom": "^18.3.1",
     "react-native": "0.75.2",
-    "react-native-encrypted-storage": "^4.0.3"
+    "react-native-encrypted-storage": "^4.0.3",
+    "react-native-quick-crypto": "^0.7.5"
   },
   "//IMP END": "IMP END - Web3Auth Installation",
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@react-native/eslint-config": "0.75.2",
     "@react-native/metro-config": "0.75.2",
     "@react-native/typescript-config": "0.75.2",
+    "@types/base-64": "^1.0.2",
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "babel-jest": "^29.6.3",
@@ -44,7 +46,6 @@
     "metro-react-native-babel-preset": "^0.77.0",
     "prettier": "2.8.8",
     "process": "^0.11.10",
-    "react-native-get-random-values": "^1.11.0",
     "react-test-renderer": "18.3.1",
     "readable-stream": "^4.5.2",
     "typescript": "5.0.4"
