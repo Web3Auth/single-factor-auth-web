@@ -53,7 +53,7 @@ import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 const web3auth = new Web3Auth({
   clientId: "", // Get your Client ID from Web3Auth Dashboard
   web3AuthNetwork: "mainnet",
-  usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK. 
+  usePnPKey: false, // Setting this to true returns the same key as PnP Web SDK.
   // By default, this SDK returns CoreKitKey.
 });
 
@@ -82,7 +82,7 @@ await web3auth.connect({
 
 ## 🩹 Examples
 
-Checkout the examples for your preferred blockchain and platform in our [examples repository](https://github.com/Web3Auth/web3auth-core-kit-examples/tree/main/single-factor-auth-web)
+Checkout the examples for your preferred blockchain and platform in our [examples repository](https://github.com/Web3Auth/web3auth-core-kit-examples/tree/main/single-factor-auth)
 
 ## 🌐 Demo
 

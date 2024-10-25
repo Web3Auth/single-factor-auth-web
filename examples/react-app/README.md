@@ -14,14 +14,14 @@ To use this demo app, you'll first have to build the Web3Auth Single Factor Auth
 ### Build the `Web3Auth` package
 
 ```bash
-git clone https://github.com/Web3Auth/single-factor-auth-web.git
-cd single-factor-auth-web
+git clone https://github.com/Web3Auth/single-factor-auth.git
+cd single-factor-auth
 npm install && npm run build
 ```
 
 ### Start the demo app
 
-> Inside `single-factor-auth-web` directory.
+> Inside `single-factor-auth` directory.
 
 ```bash
 cd example/react-app

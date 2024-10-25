@@ -17,7 +17,7 @@
   "jsdelivr": "dist/singleFactorAuth.umd.min.js",
   "types": "dist/types/index.d.ts",
   "author": "Torus Labs",
-  "homepage": "https://github.com/Web3Auth/single-factor-auth-web#readme",
+  "homepage": "https://github.com/Web3Auth/single-factor-auth#readme",
   "license": "ISC",
   "scripts": {
     "test": "mocha --config ./.mocharc.json test/**.ts",
@@ -84,10 +84,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Web3Auth/single-factor-auth-web.git"
+    "url": "git+https://github.com/Web3Auth/single-factor-auth.git"
   },
   "bugs": {
-    "url": "https://github.com/Web3Auth/single-factor-auth-web/issues"
+    "url": "https://github.com/Web3Auth/single-factor-auth/issues"
   },
   "engines": {
     "node": ">=18.x",
