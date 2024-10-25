@@ -1,5 +1,5 @@
 import { TORUS_LEGACY_NETWORK, type TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { AuthUserInfo } from "@web3auth/auth";
+import { AuthUserInfo, IStorage } from "@web3auth/auth";
 import {
   type AdapterEvents,
   CustomChainConfig,
@@ -10,7 +10,7 @@ import {
   SafeEventEmitterProvider,
 } from "@web3auth/base";
 
-import { ADAPTER_STATUS } from "./constants";
+import { ADAPTER_STATUS, SDK_MODE } from "./constants";
 
 export type Web3AuthSfaEvents = AdapterEvents;
 
@@ -21,9 +21,36 @@ export interface TorusSubVerifierInfo {
 
 export type InitParams = { network: TORUS_NETWORK_TYPE };
 
+export type SDK_MODE_TYPE = (typeof SDK_MODE)[keyof typeof SDK_MODE];
+
 export type PrivateKeyProvider = IBaseProvider<string> & { getEd25519Key?: (privKey: string) => string };
 
 export type UserAuthInfo = { idToken: string };
+
+export interface IAsyncStorage {
+  async?: boolean;
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+}
+
+export interface ISecureStore {
+  /**
+   * Fetch the stored value associated with the provided key.
+   */
+
+  getItemAsync(key: string, options: unknown): Promise<string | null>;
+
+  /**
+   * Store a key–value pair.
+   */
+  setItemAsync(key: string, value: string, options: unknown): Promise<void>;
+
+  /**
+   * Delete the value associated with the provided key.
+   *
+   */
+  deleteItemAsync(key: string, options: unknown): Promise<void>;
+}
 
 export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" | "useCoreKitKey"> {
   /**
@@ -52,6 +79,25 @@ export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" |
    * Private key provider for your chain namespace
    */
   privateKeyProvider: IBaseProvider<string>;
+
+  /**
+   * Defines the mode of the SDK
+   *
+   * @defaultValue "web"
+   */
+  mode?: SDK_MODE_TYPE;
+
+  /**
+   *  storage for sfa's local state.
+   *
+   *  - undefined with localStorage
+   *  - "local" with localStorage
+   *  - "session" with sessionStorage
+   *
+   *  For asyncStorage, provide instance of IAsyncStorage.
+   *
+   */
+  storage?: IAsyncStorage | ISecureStore | "session" | "local";
 }
 
 export type AggregateVerifierParams = {
@@ -96,7 +142,7 @@ export type ADAPTER_STATUS_TYPE = (typeof ADAPTER_STATUS)[keyof typeof ADAPTER_S
 export type IFinalizeLoginParams = { privKey: string; userInfo: AuthUserInfo; signatures?: string[]; passkeyToken?: string };
 
 export interface IWeb3Auth extends IWeb3AuthCore {
-  readonly coreOptions: Web3AuthOptions;
+  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage | ISecureStore };
   status: ADAPTER_STATUS_TYPE;
   provider: IProvider | null;
   connected: boolean;

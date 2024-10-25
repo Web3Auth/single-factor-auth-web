@@ -2,7 +2,7 @@ import { ChainNamespaceType, signChallenge, verifySignedChallenge } from "@torus
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { SessionManager } from "@toruslabs/session-manager";
 import { keccak256, Torus, TorusKey } from "@toruslabs/torus.js";
-import { AuthUserInfo, BrowserStorage, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
+import { AuthUserInfo, IStorage, MemoryStore, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
 import {
   ADAPTER_EVENTS,
   ADAPTER_STATUS,
@@ -22,12 +22,15 @@ import {
 } from "@web3auth/base";
 import bs58 from "bs58";
 
-import { PASSKEYS_PLUGIN } from "./constants";
+import { AsyncStorage } from "./asyncStorage";
+import { PASSKEYS_PLUGIN, SDK_MODE } from "./constants";
 import {
   ADAPTER_STATUS_TYPE,
   AggregateVerifierParams,
   Auth0UserInfo,
+  IAsyncStorage,
   IFinalizeLoginParams,
+  ISecureStore,
   IWeb3Auth,
   LoginParams,
   PrivateKeyProvider,
@@ -39,7 +42,7 @@ import {
 import { decodeToken } from "./utils";
 
 export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWeb3Auth {
-  readonly coreOptions: Web3AuthOptions;
+  readonly coreOptions: Omit<Web3AuthOptions, "storage"> & { storage: IAsyncStorage | IStorage | ISecureStore };
 
   readonly connectedAdapterName = WALLET_ADAPTERS.SFA;
 
@@ -59,7 +62,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
   private sessionManager!: SessionManager<SessionData>;
 
-  private currentStorage!: BrowserStorage;
+  private currentStorage: AsyncStorage;
 
   private readonly baseStorageKey = "sfa_store";
 
@@ -83,6 +86,8 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       storageServerUrl: options.storageServerUrl || "https://session.web3auth.io",
       storageKey: options.storageKey || "local",
       chainConfig: options.chainConfig || options.privateKeyProvider.currentChainConfig,
+      storage: this.getStorage(options.storage),
+      mode: options.mode || SDK_MODE.WEB,
     };
 
     this.privKeyProvider = options.privateKeyProvider;
@@ -114,15 +119,16 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     }
 
     const storageKey = `${this.baseStorageKey}_${this.coreOptions.chainConfig.chainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
-    this.currentStorage = BrowserStorage.getInstance(storageKey, this.coreOptions.storageKey);
+    this.currentStorage = new AsyncStorage(storageKey, this.coreOptions.storage);
     this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.coreOptions.web3AuthNetwork });
     this.authInstance = new Torus({
       clientId: this.coreOptions.clientId,
       enableOneKey: true,
       network: this.coreOptions.web3AuthNetwork,
+      serverTimeOffset: this.coreOptions.serverTimeOffset,
     });
 
-    const sessionId = this.currentStorage.get<string>("sessionId");
+    const sessionId = await this.currentStorage.get<string>("sessionId");
     this.sessionManager = new SessionManager({
       sessionServerBaseUrl: this.coreOptions.storageServerUrl,
       sessionTime: this.coreOptions.sessionTime,
@@ -322,6 +328,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
   }
 
   public addPlugin(plugin: IPlugin): IWeb3Auth {
+    if (this.isRNOrNodeMode()) throw WalletInitializationError.invalidParams("Plugins are not supported in this mode");
     if (this.plugins[plugin.name]) throw WalletInitializationError.duplicateAdapterError(`Plugin ${plugin.name} already exist`);
 
     this.plugins[plugin.name] = plugin;
@@ -339,6 +346,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
   }
 
   public getPlugin(name: string): IPlugin | null {
+    if (this.isRNOrNodeMode()) throw WalletInitializationError.invalidParams("Plugins are not supported in this mode");
     return this.plugins[name] || null;
   }
 
@@ -349,22 +357,28 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     const finalPrivKey = await this.getFinalPrivKey(privKey);
     await this.privKeyProvider.setupProvider(finalPrivKey);
 
-    // save the data in the session.
-    const sessionId = SessionManager.generateRandomSessionKey();
-    this.sessionManager.sessionId = sessionId;
-
-    const { idToken } = await this.authenticateUser().catch((_) => ({ idToken: "" }));
-    if (params.userInfo) {
-      params.userInfo.idToken = idToken;
-    } else {
-      params.userInfo = { idToken } as AuthUserInfo;
+    // We only need to authenticate user in web mode.
+    // This is for the passkey plugin mode only.
+    if (this.coreOptions.mode === SDK_MODE.WEB) {
+      const { idToken } = await this.authenticateUser().catch((_) => ({ idToken: "" }));
+      if (params.userInfo) {
+        params.userInfo.idToken = idToken;
+      } else {
+        params.userInfo = { idToken } as AuthUserInfo;
+      }
     }
 
-    await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo: params.userInfo, signatures, passkeyToken });
+    // We dont need to save the session in node mode.
+    if (this.coreOptions.mode !== SDK_MODE.NODE) {
+      // save the data in the session.
+      const sessionId = SessionManager.generateRandomSessionKey();
+      this.sessionManager.sessionId = sessionId;
+      await this.sessionManager.createSession({ basePrivKey: privKey, privKey: finalPrivKey, userInfo: params.userInfo, signatures, passkeyToken });
+      this.currentStorage.set("sessionId", sessionId);
+    }
 
     // update the local state.
     this.updateState({ privKey: finalPrivKey, basePrivKey: privKey, userInfo: params.userInfo, signatures, passkeyToken });
-    this.currentStorage.set("sessionId", sessionId);
     this.emit(ADAPTER_EVENTS.CONNECTED, { adapter: this.connectedAdapterName, provider: this.provider, reconnected: false });
     this.status = ADAPTER_STATUS.CONNECTED;
   }
@@ -493,5 +507,17 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     });
     if (chainNamespace === CHAIN_NAMESPACES.SOLANA) return bs58.encode(signedMessage as Uint8Array);
     return signedMessage as string;
+  }
+
+  private isRNOrNodeMode() {
+    return this.coreOptions.mode === SDK_MODE.REACT_NATIVE || this.coreOptions.mode === SDK_MODE.NODE;
+  }
+
+  private getStorage(storage: "session" | "local" | IAsyncStorage | ISecureStore): IAsyncStorage | IStorage | ISecureStore {
+    if (typeof window !== "undefined") {
+      if (!storage || storage === "local") return window.localStorage;
+      if (storage === "session") return window.sessionStorage;
+    } else if (!storage || typeof storage === "string") return new MemoryStore();
+    return storage;
   }
 }
