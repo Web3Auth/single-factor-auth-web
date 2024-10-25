@@ -1,6 +1,6 @@
 {
   "extension": ["ts", "js"],
-  "require": ["./test/setup.mjs"],
+  "import": "tsx",
   "timeout": 0,
   "exit": true
 }
