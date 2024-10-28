@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Button,
   ScrollView,
@@ -8,7 +8,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Switch,
-  TextInput,
 } from 'react-native';
 import '@ethersproject/shims';
 // IMP START - Auth Provider Login
@@ -24,7 +23,6 @@ import {EthereumPrivateKeyProvider} from '@web3auth/ethereum-provider';
 // IMP END - Quick Start
 import {ethers} from 'ethers';
 import {MMKVLoader, useMMKVStorage} from 'react-native-mmkv-storage';
-import {Picker} from '@react-native-picker/picker';
 import {
   AccountAbstractionProvider,
   BiconomySmartAccount,
@@ -74,29 +72,26 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({
   config: {chainConfig},
 });
 
-const VITE_APP_PIMLICO_API_KEY = 'YOUR_PIMLICO_API_KEY';
+const PIMLICO_API_KEY = 'YOUR_PIMLICO_API_KEY';
 
 export const getDefaultBundlerUrl = (chainId: string): string => {
   return `https://api.pimlico.io/v2/${Number(
     chainId,
-  )}/rpc?apikey=${VITE_APP_PIMLICO_API_KEY}`;
+  )}/rpc?apikey=${PIMLICO_API_KEY}`;
 };
 
 export type SmartAccountType = 'safe' | 'kernel' | 'biconomy' | 'trust';
-
-export const SmartAccountOptions: {name: string; value: SmartAccountType}[] = [
-  {name: 'Safe', value: 'safe'},
-  {name: 'Biconomy', value: 'biconomy'},
-  {name: 'Kernel', value: 'kernel'},
-  {name: 'Trust', value: 'trust'},
-  // { name: "Light", value: "light" },
-  // { name: "Simple", value: "simple" },
-];
 
 export type AccountAbstractionConfig = {
   bundlerUrl?: string;
   paymasterUrl?: string;
   smartAccountType?: SmartAccountType;
+};
+
+const AAConfig: AccountAbstractionConfig = {
+  // bundlerUrl: "https://bundler.safe.global",
+  // paymasterUrl: "https://paymaster.safe.global",
+  smartAccountType: 'safe',
 };
 
 // IMP END - SDK Initialization
@@ -112,32 +107,9 @@ export default function App() {
   const [consoleUI, setConsoleUI] = useState<string>('');
   const [useAccountAbstraction, setUseAccountAbstraction] =
     useMMKVStorage<boolean>('useAccountAbstraction', storage, false);
-  const [aaConfig, setAaConfig] = useMMKVStorage<AccountAbstractionConfig>(
-    'aaConfig',
-    storage,
-    {},
-  );
-
-  const [bundlerUrl, setBundlerUrl] = useState<string>(
-    aaConfig.bundlerUrl || '',
-  );
-  const [paymasterUrl, setPaymasterUrl] = useState<string>(
-    aaConfig.paymasterUrl || '',
-  );
-  const [smartAccountType, setSmartAccountType] = useState<SmartAccountType>(
-    aaConfig.smartAccountType || 'safe',
-  );
 
   const toggleAccountAbstraction = () => {
     setUseAccountAbstraction(prevState => !prevState);
-  };
-
-  const handleSetAaConfig = () => {
-    setAaConfig({
-      bundlerUrl: bundlerUrl.length > 0 ? bundlerUrl : undefined,
-      paymasterUrl: paymasterUrl.length > 0 ? paymasterUrl : undefined,
-      smartAccountType,
-    });
   };
 
   useEffect(() => {
@@ -148,7 +120,7 @@ export default function App() {
         // setup aa provider
         let aaProvider: AccountAbstractionProvider | undefined;
         if (useAccountAbstraction) {
-          const {bundlerUrl, paymasterUrl, smartAccountType} = aaConfig;
+          const {bundlerUrl, paymasterUrl, smartAccountType} = AAConfig;
 
           let smartAccountInit: ISmartAccount;
           switch (smartAccountType) {
@@ -214,7 +186,7 @@ export default function App() {
       }
     };
     init();
-  }, [useAccountAbstraction, aaConfig]);
+  }, [useAccountAbstraction]);
 
   const parseToken = (token: any) => {
     try {
@@ -361,45 +333,6 @@ export default function App() {
             value={useAccountAbstraction}
           />
         </View>
-        {useAccountAbstraction && (
-          <>
-            <View style={styles.inputArea}>
-              <Text>Bundler URL:</Text>
-              <TextInput
-                style={styles.textInput}
-                value={bundlerUrl}
-                onChangeText={setBundlerUrl}
-                placeholder="Enter Bundler URL"
-                clearButtonMode="always"
-              />
-            </View>
-            <View style={styles.inputArea}>
-              <Text>Paymaster URL:</Text>
-              <TextInput
-                style={styles.textInput}
-                value={paymasterUrl}
-                onChangeText={setPaymasterUrl}
-                placeholder="Enter Paymaster URL"
-                clearButtonMode="always"
-              />
-            </View>
-            <View style={styles.inputArea}>
-              <Text>Smart Account Type:</Text>
-              <Picker
-                selectedValue={smartAccountType}
-                onValueChange={setSmartAccountType}>
-                {SmartAccountOptions.map(option => (
-                  <Picker.Item
-                    key={option.value}
-                    label={option.name}
-                    value={option.value}
-                  />
-                ))}
-              </Picker>
-            </View>
-            <Button title="Save AA config" onPress={handleSetAaConfig} />
-          </>
-        )}
       </View>
       <Button title="Login with Web3Auth" onPress={login} />
       {loading && <ActivityIndicator />}
@@ -433,16 +366,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-  },
-  inputArea: {
-    paddingVertical: 8,
-  },
-  textInput: {
-    fontSize: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 5,
-    padding: 8,
   },
   consoleUI: {
     flex: 1,
