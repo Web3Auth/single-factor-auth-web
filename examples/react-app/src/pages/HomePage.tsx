@@ -14,7 +14,7 @@ import { usePlayground } from "../services/playground";
 
 function HomePage() {
   const dialogHowRef = useRef<DialogRef>(null);
-  const { isLoading, showRegisterPasskeyModal, registerPasskey, toggleRegisterPasskeyModal } = usePlayground();
+  const { isLoading, showRegisterPasskeyModal, registerPasskey, toggleRegisterPasskeyModal, useAccountAbstraction } = usePlayground();
 
   function toggleDialog(open: boolean) {
     if (!dialogHowRef.current) {
@@ -38,25 +38,28 @@ function HomePage() {
   return isLoading ? (
     <Loader />
   ) : (
-    <div className="flex-grow flex py-4 px-4 sm:py-6 sm:px-10">
-      <div className="w-full columns-1 sm:columns-2 lg:columns-3 xl:columns-4 break-before-avoid mx-auto">
-        <div className="break-inside-avoid space-y-4 mb-4">
+    <div className="flex flex-grow px-4 py-4 sm:py-6 sm:px-10">
+      <div className="w-full mx-auto columns-1 sm:columns-2 lg:columns-3 xl:columns-4 break-before-avoid">
+        <div className="mb-4 space-y-4 break-inside-avoid">
           <Account />
           <Passkeys />
         </div>
-        <div className="break-inside-avoid lg:break-after-avoid xl:break-after-column mb-4">
-          <WalletServices />
-        </div>
-        <div className="break-inside-avoid xl:break-after-column mb-4">
+        {/* TODO: wallet service is not supporting AA atm, remove this when it is supported */}
+        {!useAccountAbstraction && (
+          <div className="mb-4 break-inside-avoid lg:break-after-avoid xl:break-after-column">
+            <WalletServices />
+          </div>
+        )}
+        <div className="mb-4 break-inside-avoid xl:break-after-column">
           <NftServices />
         </div>
-        <div className="break-inside-avoid space-y-4">
+        <div className="space-y-4 break-inside-avoid">
           <DocsDetails />
           <Card>
             <p className="text-sm text-app-gray-800">
               Have any questions?
               <a
-                className="text-app-primary-600 hover:underline inline mx-1"
+                className="inline mx-1 text-app-primary-600 hover:underline"
                 href="https://calendly.com/web3auth/meeting-with-web3auth"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -70,17 +73,17 @@ function HomePage() {
       </div>
       <Console />
       <Dialog type="modal" closeDialog={() => toggleRegisterPasskeyModal(false)} ref={dialogHowRef}>
-        <div className="text-center mt-2">
+        <div className="mt-2 text-center">
           <img className="mx-auto mb-b" src="https://images.web3auth.io/passkey-register.svg" alt="Register Passkey" />
-          <div className="font-bold mb-2 text-gray-900">Register Passkey</div>
-          <div className="text-sm mb-8 text-gray-500">
+          <div className="mb-2 font-bold text-gray-900">Register Passkey</div>
+          <div className="mb-8 text-sm text-gray-500">
             <div>With passkeys, you can verify your identity through your face, fingerprint, or security keys.</div>
-            <button type="button" className="text-primary outline-none">
+            <button type="button" className="outline-none text-primary">
               Learn more
             </button>
           </div>
           <button
-            className="flex justify-center rounded-full px-6 h-9 items-center bg-primary text-white cursor-pointer w-full"
+            className="flex items-center justify-center w-full px-6 text-white rounded-full cursor-pointer h-9 bg-primary"
             onClick={registerPasskey}
             type="button"
           >
