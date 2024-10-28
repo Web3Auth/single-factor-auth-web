@@ -39,6 +39,8 @@ jobs:
           cd example/react-app
           npm install --legacy-peer-deps
           npm run build
+        env:
+          VITE_APP_PIMLICO_API_KEY: ${{ secrets.VITE_APP_PIMLICO_API_KEY }}
 
       # Set the credentials from repository settings/secrets
       - name: Configure AWS credentials
