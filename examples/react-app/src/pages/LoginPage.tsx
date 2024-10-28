@@ -8,27 +8,13 @@ import web3authLogoBlue from "../assets/web3authLogoBlue.svg";
 import Dialog, { DialogRef } from "../components/Dialog";
 import Loader from "../components/Loader";
 import useWindowDimensions from "../hooks/window-dimensions";
-import { SmartAccountOptions, SmartAccountType, usePlayground } from "../services/playground";
+import { usePlayground } from "../services/playground";
 
 function LoginPage() {
   const guidePopupRef = useRef<DialogRef>(null);
   const guideModalRef = useRef<DialogRef>(null);
 
-  const bundlerUrlRef = useRef<HTMLInputElement>(null);
-  const paymasterUrlRef = useRef<HTMLInputElement>(null);
-  const smartAccountTypeRef = useRef<HTMLSelectElement>(null);
-
-  const { loginWithPasskey, onSuccess, isLoggedIn, isLoading, useAccountAbstraction, toggleUseAccountAbstraction, aaConfig, setAaConfig } =
-    usePlayground();
-
-  const handleSetAaConfig = () => {
-    const newConfig = {
-      bundlerUrl: bundlerUrlRef.current?.value || "",
-      paymasterUrl: paymasterUrlRef.current?.value || "",
-      smartAccountType: (smartAccountTypeRef.current?.value as SmartAccountType) || "safe",
-    };
-    setAaConfig(newConfig);
-  };
+  const { loginWithPasskey, onSuccess, isLoggedIn, isLoading, useAccountAbstraction, toggleUseAccountAbstraction } = usePlayground();
 
   const { width } = useWindowDimensions();
 
@@ -112,54 +98,6 @@ function LoginPage() {
               Account Abstraction
             </label>
           </div>
-          {useAccountAbstraction && (
-            <>
-              <div className="mb-4">
-                <label htmlFor="bundlerUrl" className="block mb-1 text-sm text-text_secondary">
-                  Bundler URL
-                </label>
-                <input
-                  type="text"
-                  id="bundlerUrl"
-                  ref={bundlerUrlRef}
-                  defaultValue={aaConfig.bundlerUrl}
-                  className="w-full px-3 py-2 text-sm border rounded-md"
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="paymasterUrl" className="block mb-1 text-sm text-text_secondary">
-                  Paymaster URL
-                </label>
-                <input
-                  type="text"
-                  id="paymasterUrl"
-                  ref={paymasterUrlRef}
-                  defaultValue={aaConfig.paymasterUrl}
-                  className="w-full px-3 py-2 text-sm border rounded-md"
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="smartAccountType" className="block mb-1 text-sm text-text_secondary">
-                  Smart Account Type
-                </label>
-                <select
-                  id="smartAccountType"
-                  ref={smartAccountTypeRef}
-                  defaultValue={aaConfig.smartAccountType}
-                  className="w-full px-3 py-2 text-sm border rounded-md"
-                >
-                  {SmartAccountOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button className="w-full px-4 py-2 mb-4 text-white rounded-full bg-primary" onClick={handleSetAaConfig}>
-                Save AA Config
-              </button>
-            </>
-          )}
         </div>
         <div className="flex justify-center mb-2">
           <GoogleLogin

@@ -29,19 +29,16 @@ type PasskeysData = {
 
 export type SmartAccountType = "safe" | "kernel" | "biconomy" | "trust";
 
-export const SmartAccountOptions: { name: string; value: SmartAccountType }[] = [
-  { name: "Safe", value: "safe" },
-  { name: "Biconomy", value: "biconomy" },
-  { name: "Kernel", value: "kernel" },
-  { name: "Trust", value: "trust" },
-  // { name: "Light", value: "light" },
-  // { name: "Simple", value: "simple" },
-];
-
 export type AccountAbstractionConfig = {
   bundlerUrl?: string;
   paymasterUrl?: string;
   smartAccountType?: SmartAccountType;
+};
+
+const AAConfig: AccountAbstractionConfig = {
+  // bundlerUrl: "https://bundler.safe.global",
+  // paymasterUrl: "https://paymaster.safe.global",
+  smartAccountType: "safe",
 };
 
 export interface IPlaygroundContext {
@@ -59,7 +56,6 @@ export interface IPlaygroundContext {
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
   useAccountAbstraction: boolean;
-  aaConfig: AccountAbstractionConfig;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
@@ -75,7 +71,6 @@ export interface IPlaygroundContext {
   toggleRegisterPasskeyModal: (isOpen: boolean) => void;
   resetConsole: () => void;
   toggleUseAccountAbstraction: () => void;
-  setAaConfig: (aaConfig: AccountAbstractionConfig) => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -93,7 +88,6 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
   useAccountAbstraction: false,
-  aaConfig: {},
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
@@ -109,7 +103,6 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   toggleRegisterPasskeyModal: async () => null,
   resetConsole: async () => null,
   toggleUseAccountAbstraction: () => null,
-  setAaConfig: () => null,
 });
 
 interface IPlaygroundProps {
@@ -169,10 +162,6 @@ export function Playground({ children }: IPlaygroundProps) {
   const [useAccountAbstraction, setUseAccountAbstraction] = useState<boolean>(() => {
     const stored = localStorage.getItem("useAccountAbstraction");
     return stored ? JSON.parse(stored) : false;
-  });
-  const [aaConfig, setAaConfig] = useState<AccountAbstractionConfig>(() => {
-    const stored = localStorage.getItem("aaConfig");
-    return stored ? JSON.parse(stored) : {};
   });
 
   // Dialog
@@ -412,11 +401,6 @@ export function Playground({ children }: IPlaygroundProps) {
     });
   };
 
-  const setAaConfigWithStorage = (newConfig: AccountAbstractionConfig) => {
-    setAaConfig(newConfig);
-    localStorage.setItem("aaConfig", JSON.stringify(newConfig));
-  };
-
   useEffect(() => {
     const init = async () => {
       try {
@@ -425,7 +409,7 @@ export function Playground({ children }: IPlaygroundProps) {
         // setup aa provider
         let aaProvider: AccountAbstractionProvider | undefined;
         if (useAccountAbstraction) {
-          const { bundlerUrl, paymasterUrl, smartAccountType } = aaConfig;
+          const { bundlerUrl, paymasterUrl, smartAccountType } = AAConfig;
 
           let smartAccountInit: ISmartAccount;
           switch (smartAccountType) {
@@ -516,7 +500,7 @@ export function Playground({ children }: IPlaygroundProps) {
     };
 
     init();
-  }, [useAccountAbstraction, aaConfig]);
+  }, [useAccountAbstraction]);
 
   const contextProvider = useMemo(
     () => ({
@@ -548,9 +532,7 @@ export function Playground({ children }: IPlaygroundProps) {
       toggleRegisterPasskeyModal,
       resetConsole,
       useAccountAbstraction,
-      aaConfig,
       toggleUseAccountAbstraction,
-      setAaConfig: setAaConfigWithStorage,
     }),
     [
       address,
@@ -578,9 +560,7 @@ export function Playground({ children }: IPlaygroundProps) {
       signMessage,
       sendTransaction,
       useAccountAbstraction,
-      aaConfig,
       toggleUseAccountAbstraction,
-      setAaConfigWithStorage,
     ]
   );
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;
