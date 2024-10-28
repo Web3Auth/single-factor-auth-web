@@ -13,7 +13,8 @@ import { usePlayground } from "../services/playground";
 function LoginPage() {
   const guidePopupRef = useRef<DialogRef>(null);
   const guideModalRef = useRef<DialogRef>(null);
-  const { loginWithPasskey, onSuccess, isLoggedIn, isLoading } = usePlayground();
+
+  const { loginWithPasskey, onSuccess, isLoggedIn, isLoading, useAccountAbstraction, toggleUseAccountAbstraction } = usePlayground();
 
   const { width } = useWindowDimensions();
 
@@ -78,12 +79,25 @@ function LoginPage() {
   return isLoading ? (
     <Loader />
   ) : (
-    <div className="flex-grow flex items-center justify-center p-4">
+    <div className="flex items-center justify-center flex-grow p-4">
       <div className="w-[340px] sm:w-[392px] bg-white p-8 rounded-2xl shadow-modal border-0">
         <img src={web3authLogoBlue} className="w-12 h-12 mb-5" alt="dapp logo" />
         <div className="mb-6">
           <p className="text-xl font-bold text-text_primary">Sign in</p>
           <p className="font-medium text-text_secondary">Your blockchain wallet in one-click</p>
+          <div className="flex items-center my-4">
+            <input
+              type="checkbox"
+              id="useAccountAbstraction"
+              value={useAccountAbstraction.toString()}
+              checked={useAccountAbstraction}
+              onChange={toggleUseAccountAbstraction}
+              className="w-5 h-5 border-gray-300 rounded form-checkbox text-primary"
+            />
+            <label htmlFor="useAccountAbstraction" className="ml-2 text-sm text-text_secondary">
+              Account Abstraction
+            </label>
+          </div>
         </div>
         <div className="flex justify-center mb-2">
           <GoogleLogin
@@ -98,15 +112,15 @@ function LoginPage() {
           />
         </div>
         <button
-          className="flex justify-center rounded-full px-6 h-9 items-center text-white cursor-pointer w-full"
+          className="flex items-center justify-center w-full px-6 text-white rounded-full cursor-pointer h-9"
           style={{ backgroundColor: "#0364ff" }}
           onClick={onLoginWithPasskey}
           type="button"
         >
           I have a passkey
         </button>
-        <div className="mt-1 w-full text-center">
-          <button className="text-primary text-xs" onClick={() => toggleGuideModal(true)} type="button">
+        <div className="w-full mt-1 text-center">
+          <button className="text-xs text-primary" onClick={() => toggleGuideModal(true)} type="button">
             How does it work?
           </button>
         </div>
@@ -117,12 +131,12 @@ function LoginPage() {
       {width > 640 && (
         <Dialog type="non-modal" closeDialog={() => toggleGuidePopup(false)} ref={guidePopupRef}>
           <div className="mb-6">
-            <h2 className="text-text_primary2 font-semibold">Getting started with Passkey Demo</h2>
+            <h2 className="font-semibold text-text_primary2">Getting started with Passkey Demo</h2>
           </div>
           <ul className="text-text_secondary">
             {steps.map((step) => (
               <li key={step.index} className="flex gap-4">
-                <div className="bg-primary flex-shrink-0 mt-1 rounded-full w-5 h-5 flex items-center justify-center text-white">{step.index}</div>
+                <div className="flex items-center justify-center flex-shrink-0 w-5 h-5 mt-1 text-white rounded-full bg-primary">{step.index}</div>
                 {step.text}
               </li>
             ))}
@@ -132,13 +146,13 @@ function LoginPage() {
 
       <Dialog type="modal" closeDialog={() => toggleGuideModal(false)} ref={guideModalRef}>
         <div className="mb-8">
-          <h2 className="text-lg text-text_primary font-semibold">How does it work?</h2>
+          <h2 className="text-lg font-semibold text-text_primary">How does it work?</h2>
           <p className="text-sm text-text_secondary">Follow below steps</p>
         </div>
         <ul className="text-text_secondary">
           {steps.map((step) => (
             <li key={step.index} className="flex gap-4">
-              <div className="bg-primary flex-shrink-0 mt-1 rounded-full w-5 h-5 flex items-center justify-center text-white">{step.index}</div>
+              <div className="flex items-center justify-center flex-shrink-0 w-5 h-5 mt-1 text-white rounded-full bg-primary">{step.index}</div>
               {step.text}
             </li>
           ))}

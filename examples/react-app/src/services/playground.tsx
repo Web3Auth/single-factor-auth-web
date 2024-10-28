@@ -10,6 +10,15 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 
 import RPC from "../evm.ethers";
 import { shouldSupportPasskey } from "../utils";
+import {
+  AccountAbstractionProvider,
+  BiconomySmartAccount,
+  ISmartAccount,
+  KernelSmartAccount,
+  SafeSmartAccount,
+  TrustSmartAccount,
+} from "@web3auth/account-abstraction-provider";
+import { getDefaultBundlerUrl } from "../config";
 
 type PasskeysData = {
   id: number;
@@ -17,6 +26,21 @@ type PasskeysData = {
   detail1: string;
   detail2: string;
 };
+
+export type SmartAccountType = "safe" | "kernel" | "biconomy" | "trust";
+
+export type AccountAbstractionConfig = {
+  bundlerUrl?: string;
+  paymasterUrl?: string;
+  smartAccountType?: SmartAccountType;
+};
+
+const AAConfig: AccountAbstractionConfig = {
+  // bundlerUrl: "https://bundler.safe.global",
+  // paymasterUrl: "https://paymaster.safe.global",
+  smartAccountType: "safe",
+};
+
 export interface IPlaygroundContext {
   address: string;
   balance: string;
@@ -31,6 +55,7 @@ export interface IPlaygroundContext {
   deletingPasskeyId: number | null;
   isCancelModalOpen: boolean;
   showRegisterPasskeyModal: boolean;
+  useAccountAbstraction: boolean;
   onSuccess: (response: CredentialResponse) => void;
   loginWithPasskey: () => void;
   registerPasskey: () => void;
@@ -45,6 +70,7 @@ export interface IPlaygroundContext {
   toggleCancelModal: (isOpen: boolean) => void;
   toggleRegisterPasskeyModal: (isOpen: boolean) => void;
   resetConsole: () => void;
+  toggleUseAccountAbstraction: () => void;
 }
 
 export const PlaygroundContext = createContext<IPlaygroundContext>({
@@ -61,6 +87,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   deletingPasskeyId: null,
   isCancelModalOpen: false,
   showRegisterPasskeyModal: false,
+  useAccountAbstraction: false,
   onSuccess: async () => null,
   loginWithPasskey: async () => null,
   registerPasskey: async () => null,
@@ -75,6 +102,7 @@ export const PlaygroundContext = createContext<IPlaygroundContext>({
   toggleCancelModal: async () => null,
   toggleRegisterPasskeyModal: async () => null,
   resetConsole: async () => null,
+  toggleUseAccountAbstraction: () => null,
 });
 
 interface IPlaygroundProps {
@@ -130,6 +158,11 @@ export function Playground({ children }: IPlaygroundProps) {
   const [showRegisterPasskeyModal, setShowRegisterPasskeyModal] = useState<boolean>(false);
   const [passkeys, setPasskeys] = useState<PasskeysData[]>([]);
   const [deletingPasskeyId, setDeletingPasskeyId] = useState<number | null>(null);
+
+  const [useAccountAbstraction, setUseAccountAbstraction] = useState<boolean>(() => {
+    const stored = localStorage.getItem("useAccountAbstraction");
+    return stored ? JSON.parse(stored) : false;
+  });
 
   // Dialog
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -360,16 +393,68 @@ export function Playground({ children }: IPlaygroundProps) {
     setPlaygroundConsoleTitle("");
   };
 
+  const toggleUseAccountAbstraction = () => {
+    setUseAccountAbstraction((prev) => {
+      const newValue = !prev;
+      localStorage.setItem("useAccountAbstraction", JSON.stringify(newValue));
+      return newValue;
+    });
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
         const ethPrivateKeyProvider = new EthereumPrivateKeyProvider({ config: { chainConfig: chainConfigMain } });
+
+        // setup aa provider
+        let aaProvider: AccountAbstractionProvider | undefined;
+        if (useAccountAbstraction) {
+          const { bundlerUrl, paymasterUrl, smartAccountType } = AAConfig;
+
+          let smartAccountInit: ISmartAccount;
+          switch (smartAccountType) {
+            case "biconomy":
+              smartAccountInit = new BiconomySmartAccount();
+              break;
+            case "kernel":
+              smartAccountInit = new KernelSmartAccount();
+              break;
+            case "trust":
+              smartAccountInit = new TrustSmartAccount();
+              break;
+            // case "light":
+            //   smartAccountInit = new LightSmartAccount();
+            //   break;
+            // case "simple":
+            //   smartAccountInit = new SimpleSmartAccount();
+            //   break;
+            case "safe":
+            default:
+              smartAccountInit = new SafeSmartAccount();
+              break;
+          }
+
+          aaProvider = new AccountAbstractionProvider({
+            config: {
+              chainConfig: chainConfigMain,
+              bundlerConfig: { url: bundlerUrl ?? getDefaultBundlerUrl(chainConfigMain.chainId) },
+              paymasterConfig: paymasterUrl
+                ? {
+                    url: paymasterUrl,
+                  }
+                : undefined,
+              smartAccountInit,
+            },
+          });
+        }
+
         // Initialising Web3Auth Single Factor Auth SDK
         const web3authSfa = new Web3Auth({
           clientId, // Get your Client ID from Web3Auth Dashboard
           web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
           usePnPKey: true, // Setting this to true returns the same key as PnP Web SDK, By default, this SDK returns CoreKitKey.
           privateKeyProvider: ethPrivateKeyProvider,
+          accountAbstractionProvider: aaProvider,
         });
         const passkeyPlugin = new PasskeysPlugin();
         web3authSfa?.addPlugin(passkeyPlugin);
@@ -393,7 +478,7 @@ export function Playground({ children }: IPlaygroundProps) {
 
           // Get account data
 
-          const rpc = new RPC(ethPrivateKeyProvider);
+          const rpc = new RPC(web3authSfa.provider!);
           const [account, rpcBalance, rpcChainId] = await Promise.all([rpc.getAccounts(), rpc.getBalance(), rpc.getChainId()]);
           setAddress(account);
           setBalance(rpcBalance);
@@ -415,7 +500,7 @@ export function Playground({ children }: IPlaygroundProps) {
     };
 
     init();
-  }, []);
+  }, [useAccountAbstraction]);
 
   const contextProvider = useMemo(
     () => ({
@@ -446,6 +531,8 @@ export function Playground({ children }: IPlaygroundProps) {
       toggleCancelModal,
       toggleRegisterPasskeyModal,
       resetConsole,
+      useAccountAbstraction,
+      toggleUseAccountAbstraction,
     }),
     [
       address,
@@ -472,6 +559,8 @@ export function Playground({ children }: IPlaygroundProps) {
       showWalletScanner,
       signMessage,
       sendTransaction,
+      useAccountAbstraction,
+      toggleUseAccountAbstraction,
     ]
   );
   return <PlaygroundContext.Provider value={contextProvider}>{children}</PlaygroundContext.Provider>;

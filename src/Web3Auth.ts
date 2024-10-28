@@ -60,6 +60,8 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
   private privKeyProvider: PrivateKeyProvider | null = null;
 
+  private accountAbstractionProvider: Web3AuthOptions["accountAbstractionProvider"] | null = null;
+
   private sessionManager!: SessionManager<SessionData>;
 
   private currentStorage: AsyncStorage;
@@ -91,6 +93,9 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     };
 
     this.privKeyProvider = options.privateKeyProvider;
+    if (options.accountAbstractionProvider) {
+      this.accountAbstractionProvider = options.accountAbstractionProvider;
+    }
   }
 
   get connected(): boolean {
@@ -99,7 +104,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
   get provider(): IProvider | null {
     if (this.status !== ADAPTER_STATUS.NOT_READY && this.privKeyProvider) {
-      return this.privKeyProvider;
+      return this.accountAbstractionProvider ?? this.privKeyProvider;
     }
     return null;
   }
@@ -152,6 +157,10 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       if (data && data.privKey) {
         this.torusPrivKey = data.basePrivKey;
         await this.privKeyProvider.setupProvider(data.privKey);
+        // setup aa provider after private key provider is setup
+        if (this.accountAbstractionProvider) {
+          await this.accountAbstractionProvider.setupProvider(this.privKeyProvider);
+        }
         this.updateState(data);
         this.status = ADAPTER_STATUS.CONNECTED;
         this.emit(ADAPTER_EVENTS.CONNECTED, { adapter: this.connectedAdapterName, provider: this.provider, reconnected: true });
@@ -356,6 +365,10 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     // update the provider with the private key.
     const finalPrivKey = await this.getFinalPrivKey(privKey);
     await this.privKeyProvider.setupProvider(finalPrivKey);
+    // setup aa provider after private key provider is setup
+    if (this.accountAbstractionProvider) {
+      await this.accountAbstractionProvider.setupProvider(this.privKeyProvider);
+    }
 
     // We only need to authenticate user in web mode.
     // This is for the passkey plugin mode only.

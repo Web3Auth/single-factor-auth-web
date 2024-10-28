@@ -5,6 +5,8 @@ const { EthereumPrivateKeyProvider } = require("@web3auth/ethereum-provider");
 const jwt = require('jsonwebtoken');
 // const fs = require('fs').promises;
 const fsSync = require('fs');
+const { BiconomySmartAccount, KernelSmartAccount, TrustSmartAccount, SafeSmartAccount, AccountAbstractionProvider } = require("@web3auth/account-abstraction-provider");
+const { CHAIN_NAMESPACES } = require("@web3auth/base");
 // const path = require("path");
 
 // IMP START - Dashboard Registration
@@ -27,6 +29,38 @@ const chainConfig = {
   logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
 };
 
+// const chainConfig = {
+//   chainId: "0xaa36a7",
+//   displayName: "Ethereum Sepolia Testnet",
+//   chainNamespace: "eip155",
+//   tickerName: "Ethereum",
+//   ticker: "ETH",
+//   decimals: 18,
+//   rpcTarget: "https://rpc.ankr.com/eth_sepolia",
+//   blockExplorerUrl: "https://sepolia.etherscan.io",
+//   logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+// };
+
+// IMP START - account abstraction config
+const useAccountAbstraction = false;
+
+const pimlicoApiKey = "YOUR_API_KEY";
+
+const getDefaultBundlerUrl = (chainId) => {
+  return `https://api.pimlico.io/v2/${Number(chainId)}/rpc?apikey=${pimlicoApiKey}`;
+};
+
+// const bundlerUrl = "";
+const bundlerUrl = undefined;
+const paymasterUrl = undefined;
+
+const aaConfig = {
+  bundlerUrl: bundlerUrl ?? getDefaultBundlerUrl(chainConfig.chainId),
+  paymasterUrl,
+  smartAccountType: "safe",
+};
+// IMP END - account abstraction config
+
 // IMP START - SDK Initialization
 const privateKeyProvider = new EthereumPrivateKeyProvider({
   config: {
@@ -34,10 +68,48 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({
   }
 });
 
+// setup aa provider
+let aaProvider;
+if (useAccountAbstraction) {
+  const { bundlerUrl, paymasterUrl, smartAccountType } = aaConfig;
+
+  let smartAccountInit;
+  switch (smartAccountType) {
+    case "biconomy":
+      smartAccountInit = new BiconomySmartAccount();
+      break;
+    case "kernel":
+      smartAccountInit = new KernelSmartAccount();
+      break;
+    case "trust":
+      smartAccountInit = new TrustSmartAccount();
+      break;
+    // case "light":
+    //   smartAccountInit = new LightSmartAccount();
+    //   break;
+    // case "simple":
+    //   smartAccountInit = new SimpleSmartAccount();
+    //   break;
+    case "safe":
+    default:
+      smartAccountInit = new SafeSmartAccount();
+      break;
+  }
+  aaProvider = new AccountAbstractionProvider({
+    config: {
+      chainConfig,
+      bundlerConfig: { url: bundlerUrl },
+      paymasterConfig: paymasterUrl ? { url: paymasterUrl } : undefined,
+      smartAccountInit,
+    },
+  });
+}
+
 const web3auth = new Web3Auth({
   clientId,
   web3AuthNetwork: "sapphire_mainnet", // Get your Network ID from Web3Auth Dashboard
   privateKeyProvider,
+  accountAbstractionProvider: aaProvider,
   mode: SDK_MODE.NODE,
 });
 // IMP END - SDK Initialization
@@ -71,8 +143,11 @@ const connect = async () => {
     idToken: token, // replace with your newly created unused JWT Token.
   });
   // IMP END - Login
-  const eth_private_key = await provider.request({ method: "eth_private_key" });
-  console.log("ETH PrivateKey: ", eth_private_key);
+  // smart account does not have private key
+  if (!useAccountAbstraction) {
+    const eth_private_key = await provider.request({ method: "eth_private_key" });
+    console.log("ETH PrivateKey: ", eth_private_key);
+  }
   const eth_address = await provider.request({ method: "eth_accounts" });
   console.log("ETH Address: ", eth_address[0]);
   process.exit(0);
