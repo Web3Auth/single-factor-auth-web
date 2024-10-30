@@ -1,6 +1,6 @@
 import { CredentialResponse, googleLogout } from "@react-oauth/google";
 import { AuthUserInfo } from "@web3auth/auth";
-import { CHAIN_NAMESPACES, IProvider, log, WEB3AUTH_NETWORK } from "@web3auth/base";
+import { CHAIN_NAMESPACES, IProvider, log, WEB3AUTH_NETWORK, IPlugin } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
 // Import Single Factor Auth SDK for no redirect flow
@@ -457,7 +457,7 @@ export function Playground({ children }: IPlaygroundProps) {
           accountAbstractionProvider: aaProvider,
         });
         const passkeyPlugin = new PasskeysPlugin();
-        web3authSfa?.addPlugin(passkeyPlugin);
+        web3authSfa?.addPlugin(passkeyPlugin as IPlugin);
         const walletServicePlugin = new WalletServicesPlugin({
           walletInitOptions: {
             whiteLabel: {
