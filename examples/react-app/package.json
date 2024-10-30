@@ -1,0 +1,68 @@
+{
+  "name": "sfa-react-example",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@react-oauth/google": "^0.12.1",
+    "@testing-library/jest-dom": "^6.6.2",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.8.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@web3auth/account-abstraction-provider": "^9.3.0",
+    "@web3auth/auth": "^9.4.1",
+    "@web3auth/base": "^9.3.0",
+    "@web3auth/ethereum-provider": "^9.3.0",
+    "@web3auth/passkeys-sfa-plugin": "^9.0.0",
+    "@web3auth/single-factor-auth": "file:../..",
+    "@web3auth/wallet-services-plugin": "^9.3.0",
+    "bowser": "^2.11.0",
+    "ethers": "^6.13.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
+    "source-map-loader": "^5.0.0",
+    "typescript": "^5.6.3"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@toruslabs/eslint-config-react"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      "supports bigint",
+      "not dead"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@toruslabs/eslint-config-react": "^3.4.4",
+    "@vitejs/plugin-react": "^4.3.3",
+    "assert": "^2.1.0",
+    "autoprefixer": "^10.4.20",
+    "buffer": "^6.0.3",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "lodash-es": "^4.17.21",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "process": "^0.11.10",
+    "source-map-explorer": "^2.5.3",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
+    "lint": "eslint --fix 'src/**/*.ts' 'src/**/*.tsx'",
+    "analyze": "source-map-explorer build/assets/*.js build/assets/*.map --no-border-checks"
+  }
+}

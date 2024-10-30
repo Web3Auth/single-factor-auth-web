@@ -6,4 +6,10 @@ export const ADAPTER_STATUS = {
   CONNECTED: "connected",
 } as const;
 
+export const SDK_MODE = {
+  REACT_NATIVE: "react-native",
+  WEB: "web",
+  NODE: "node",
+} as const;
+
 export const PASSKEYS_PLUGIN = "PASSKEYS_PLUGIN";
