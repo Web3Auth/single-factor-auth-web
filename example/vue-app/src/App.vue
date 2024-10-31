@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Button, Card, Select } from "@toruslabs/vue-components";
-import { CHAIN_NAMESPACES, ChainNamespaceType, CustomChainConfig, IBaseProvider, IProvider, WEB3AUTH_NETWORK } from "@web3auth/base";
+import {
+  CHAIN_NAMESPACES,
+  ChainNamespaceType,
+  CustomChainConfig,
+  IBaseProvider,
+  IPlugin,
+  IProvider,
+  WEB3AUTH_NETWORK,
+  WEB3AUTH_NETWORK_TYPE,
+} from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { PasskeysPlugin } from "@web3auth/passkeys-sfa-plugin";
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK, Web3Auth } from "@web3auth/single-factor-auth";
@@ -82,10 +91,10 @@ const initW3A = async () => {
   const w3A = new Web3Auth({
     web3AuthNetwork: formData.value.network,
     privateKeyProvider: privateKeyProvider.value as IBaseProvider<string>,
-    clientId: clientIds[formData.value.network],
+    clientId: clientIds[formData.value.network as WEB3AUTH_NETWORK_TYPE],
   });
 
-  w3A.addPlugin(passkeysPlugin.value);
+  w3A.addPlugin(passkeysPlugin.value as IPlugin);
 
   await w3A.init();
   web3Auth.value = w3A;
@@ -155,7 +164,7 @@ const onRegisterPasskey = async () => {
 
 const onListAllPasskeys = async () => {
   const passkeys = await passkeysPlugin.value.listAllPasskeys();
-  printToConsole(passkeys);
+  printToConsole("passkeys", passkeys);
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
