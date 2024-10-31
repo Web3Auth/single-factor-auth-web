@@ -1,11 +1,4 @@
-import {
-  CHAIN_NAMESPACES,
-  ChainNamespaceType,
-  CustomChainConfig,
-  OPENLOGIN_NETWORK_TYPE,
-  WEB3AUTH_NETWORK,
-  WEB3AUTH_NETWORK_TYPE,
-} from "@web3auth/base";
+import { CHAIN_NAMESPACES, ChainNamespaceType, CustomChainConfig, WEB3AUTH_NETWORK, WEB3AUTH_NETWORK_TYPE } from "@web3auth/base";
 
 export const GOOGLE = "google";
 export const FACEBOOK = "facebook";
@@ -39,7 +32,7 @@ export interface LoginProviderItem {
 }
 
 export type FormData = {
-  network: OPENLOGIN_NETWORK_TYPE;
+  network: WEB3AUTH_NETWORK_TYPE;
   chainNamespace: ChainNamespaceType;
   chain: string;
 };
