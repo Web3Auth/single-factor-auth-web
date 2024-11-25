@@ -20,15 +20,14 @@
   "homepage": "https://github.com/Web3Auth/single-factor-auth#readme",
   "license": "ISC",
   "scripts": {
-    "test": "mocha --config ./.mocharc.json test/**.ts",
-    "test-debugger": "mocha --config ./.mocharc.json --inspect-brk test/**.ts",
     "dev": "torus-scripts start",
     "build": "torus-scripts build",
     "release": "torus-scripts release",
     "lint": "eslint --fix 'src/**/*.ts'",
     "prepack": "npm run build",
     "pre-commit": "lint-staged --cwd .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run --coverage"
   },
   "files": [
     "dist"
@@ -51,14 +50,12 @@
     "@toruslabs/config": "^2.2.0",
     "@toruslabs/eslint-config-typescript": "^3.3.3",
     "@toruslabs/torus-scripts": "^6.1.2",
-    "@types/chai": "^4.3.19",
     "@types/jsonwebtoken": "^9.0.7",
-    "@types/mocha": "^10.0.8",
     "@types/node": "^22",
+    "@vitest/coverage-v8": "^2.1.5",
     "@web3auth/base-provider": "^9.0.0",
     "@web3auth/ethereum-provider": "^9.0.0",
     "@web3auth/solana-provider": "^9.0.0",
-    "chai": "^4.3.10",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "eslint": "^8.56.0",
@@ -66,13 +63,13 @@
     "jsonwebtoken": "^9.0.2",
     "lint-staged": "^15.2.10",
     "lodash-es": "^4.17.21",
-    "mocha": "^10.7.3",
     "rimraf": "^6.0.1",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
     "tslib": "^2.7.0",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.5"
   },
   "lint-staged": {
     "!(*d).ts": [
