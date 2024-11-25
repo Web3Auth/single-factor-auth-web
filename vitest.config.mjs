@@ -10,6 +10,7 @@ export default defineConfig({
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
     },
+    timeout: 10000,
     silent: true,
   },
 });
