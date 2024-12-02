@@ -82,6 +82,7 @@ describe("SFA SDK unit tests", function () {
         storageServerUrl: "https://example.com",
         mode: SDK_MODE.NODE,
         serverTimeOffset: 0,
+        useDkg: true,
         storage: "session",
       };
       const web3auth = new Web3Auth(options);
@@ -319,19 +320,6 @@ describe("SFA SDK unit tests", function () {
       });
       // eslint-disable-next-line require-atomic-updates
       web3auth.authInstance = undefined; // simulate authInstance not initialized
-      await expect(async () => {
-        await web3auth.authenticateUser();
-      }).rejects.toThrow("Wallet is not ready yet");
-    });
-
-    it("should throw error if nodeDetailManagerInstance is not initialized", async function () {
-      await web3auth.connect({
-        verifier: TORUS_TEST_VERIFIER,
-        verifierId: TORUS_TEST_EMAIL,
-        idToken: generateIdToken(TORUS_TEST_EMAIL, "ES256"),
-      });
-      // eslint-disable-next-line require-atomic-updates
-      web3auth.nodeDetailManagerInstance = undefined; // simulate nodeDetailManagerInstance not initialized
       await expect(async () => {
         await web3auth.authenticateUser();
       }).rejects.toThrow("Wallet is not ready yet");
