@@ -103,6 +103,13 @@ export interface Web3AuthOptions extends Omit<IWeb3AuthCoreOptions, "uiConfig" |
    *
    */
   storage?: IAsyncStorage | ISecureStore | "session" | "local";
+
+  /**
+   * set use dkg flag to generate keys.
+   *
+   * @defaultValue true
+   */
+  useDkg?: boolean;
 }
 
 export type AggregateVerifierParams = {

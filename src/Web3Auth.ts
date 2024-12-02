@@ -1,5 +1,6 @@
 import { ChainNamespaceType, signChallenge, verifySignedChallenge } from "@toruslabs/base-controllers";
-import { NodeDetailManager } from "@toruslabs/fetch-node-details";
+import { INodeDetails, KEY_TYPE, TORUS_SAPPHIRE_NETWORK, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants";
+import { fetchLocalConfig } from "@toruslabs/fnd-base";
 import { SessionManager } from "@toruslabs/session-manager";
 import { keccak256, Torus, TorusKey } from "@toruslabs/torus.js";
 import { AuthUserInfo, IStorage, MemoryStore, SafeEventEmitter, subkey, WEB3AUTH_NETWORK, type WEB3AUTH_NETWORK_TYPE } from "@web3auth/auth";
@@ -52,9 +53,9 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
   public authInstance: Torus | null = null;
 
-  public nodeDetailManagerInstance: NodeDetailManager | null = null;
-
   public state: SessionData = {};
+
+  private nodeDetails: INodeDetails | null = null;
 
   private torusPrivKey: string | null = null;
 
@@ -92,6 +93,8 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       mode: options.mode || SDK_MODE.WEB,
     };
 
+    this.coreOptions.useDkg = this.isSapphireNetwork() ? (options.useDkg ?? true) : true;
+
     this.privKeyProvider = options.privateKeyProvider;
     if (options.accountAbstractionProvider) {
       this.accountAbstractionProvider = options.accountAbstractionProvider;
@@ -125,7 +128,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
     const storageKey = `${this.baseStorageKey}_${this.coreOptions.chainConfig.chainNamespace === CHAIN_NAMESPACES.SOLANA ? "solana" : "eip"}_${this.coreOptions.usePnPKey ? "pnp" : "core_kit"}`;
     this.currentStorage = new AsyncStorage(storageKey, this.coreOptions.storage);
-    this.nodeDetailManagerInstance = new NodeDetailManager({ network: this.coreOptions.web3AuthNetwork });
+    this.nodeDetails = fetchLocalConfig(this.coreOptions.web3AuthNetwork, KEY_TYPE.SECP256K1);
     this.authInstance = new Torus({
       clientId: this.coreOptions.clientId,
       enableOneKey: true,
@@ -178,7 +181,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
     if (userInfo?.idToken) return { idToken: userInfo.idToken };
 
     const { chainNamespace, chainId } = this.coreOptions.chainConfig || {};
-    if (!this.authInstance || !this.privKeyProvider || !this.nodeDetailManagerInstance) throw WalletInitializationError.notReady();
+    if (!this.authInstance || !this.privKeyProvider) throw WalletInitializationError.notReady();
     const accounts = await this.privKeyProvider.provider.request<unknown, string[]>({
       method: chainNamespace === CHAIN_NAMESPACES.EIP155 ? "eth_accounts" : "getAccounts",
     });
@@ -246,9 +249,8 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
     if (!verifier || !verifierId || !idToken) throw WalletInitializationError.invalidParams("verifier or verifierId or idToken  required");
-    const verifierDetails = { verifier, verifierId };
 
-    const { torusNodeEndpoints, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = this.nodeDetails;
 
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
@@ -273,13 +275,18 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       finalVerifierParams = aggregateVerifierParams;
     }
 
-    const retrieveSharesResponse = await this.authInstance.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
+    const retrieveSharesResponse = await this.authInstance.retrieveShares({
+      endpoints: torusNodeEndpoints,
+      indexes: torusIndexes,
       verifier,
-      finalVerifierParams,
-      finalIdToken
-    );
+      verifierParams: finalVerifierParams,
+      idToken: finalIdToken,
+      nodePubkeys: torusNodePub,
+      checkCommitment: false,
+      useDkg: this.coreOptions.useDkg,
+      extraParams: {},
+    });
+
     if (retrieveSharesResponse.metadata.upgraded) {
       throw WalletLoginError.mfaEnabled();
     }
@@ -422,9 +429,8 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
 
   private async getTorusKey(loginParams: LoginParams): Promise<string> {
     const { verifier, verifierId, idToken, subVerifierInfoArray } = loginParams;
-    const verifierDetails = { verifier, verifierId };
 
-    const { torusNodeEndpoints, torusIndexes } = await this.nodeDetailManagerInstance.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = fetchLocalConfig(this.coreOptions.web3AuthNetwork, KEY_TYPE.SECP256K1);
 
     if (loginParams.serverTimeOffset) {
       this.authInstance.serverTimeOffset = loginParams.serverTimeOffset;
@@ -452,17 +458,24 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       finalVerifierParams = aggregateVerifierParams;
     }
 
-    const retrieveSharesResponse = await this.authInstance.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
+    const retrieveSharesResponse = await this.authInstance.retrieveShares({
+      endpoints: torusNodeEndpoints,
+      indexes: torusIndexes,
       verifier,
-      finalVerifierParams,
-      finalIdToken,
-      {}
-    );
+      verifierParams: finalVerifierParams,
+      idToken: finalIdToken,
+      useDkg: this.coreOptions.useDkg,
+      checkCommitment: false,
+      extraParams: {},
+      nodePubkeys: torusNodePub,
+    });
 
     const postboxKey = Torus.getPostboxKey(retrieveSharesResponse);
     return postboxKey.padStart(64, "0");
+  }
+
+  private isSapphireNetwork() {
+    return Object.values(TORUS_SAPPHIRE_NETWORK).includes(this.coreOptions.web3AuthNetwork as TORUS_SAPPHIRE_NETWORK_TYPE);
   }
 
   private getSessionSignatures(sessionData: TorusKey["sessionData"]): string[] {

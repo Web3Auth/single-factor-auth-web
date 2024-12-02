@@ -36,26 +36,26 @@
     "@babel/runtime": "^7.x"
   },
   "dependencies": {
-    "@toruslabs/base-controllers": "^6.1.2",
-    "@toruslabs/constants": "^14.0.0",
-    "@toruslabs/fetch-node-details": "^14.0.1",
-    "@toruslabs/session-manager": "^3.0.0",
-    "@toruslabs/torus.js": "^14.0.2",
-    "@web3auth/auth": "^9.3.3",
-    "@web3auth/base": "^9.0.0",
+    "@toruslabs/base-controllers": "^6.2.4",
+    "@toruslabs/constants": "^14.1.1",
+    "@toruslabs/fnd-base": "^14.1.1",
+    "@toruslabs/session-manager": "^3.2.0",
+    "@toruslabs/torus.js": "^15.1.1",
+    "@web3auth/auth": "^9.5.1",
+    "@web3auth/base": "^9.4.0",
     "bs58": "^5.0.0"
   },
   "devDependencies": {
-    "@babel/register": "^7.24.6",
+    "@babel/register": "^7.25.9",
     "@toruslabs/config": "^2.2.0",
-    "@toruslabs/eslint-config-typescript": "^3.3.3",
-    "@toruslabs/torus-scripts": "^6.1.2",
+    "@toruslabs/eslint-config-typescript": "^3.3.4",
+    "@toruslabs/torus-scripts": "^6.1.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22",
     "@vitest/coverage-v8": "^2.1.5",
-    "@web3auth/base-provider": "^9.0.0",
-    "@web3auth/ethereum-provider": "^9.0.0",
-    "@web3auth/solana-provider": "^9.0.0",
+    "@web3auth/base-provider": "^9.4.0",
+    "@web3auth/ethereum-provider": "^9.4.0",
+    "@web3auth/solana-provider": "^9.4.0",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "eslint": "^8.56.0",
@@ -66,10 +66,13 @@
     "rimraf": "^6.0.1",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
-    "tslib": "^2.7.0",
+    "tslib": "^2.8.1",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2",
     "vitest": "^2.1.5"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.28.0"
   },
   "lint-staged": {
     "!(*d).ts": [
