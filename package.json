@@ -72,6 +72,9 @@
     "typescript": "^5.6.2",
     "vitest": "^2.1.5"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": ""
+  },
   "lint-staged": {
     "!(*d).ts": [
       "eslint --cache --fix"
