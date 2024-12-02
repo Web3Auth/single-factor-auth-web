@@ -57,7 +57,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: jakejarvis/s3-sync-action@master
         env:
-          SOURCE_DIR: "./example/react-app/build"
+          SOURCE_DIR: "./examples/react-app/build"
           AWS_REGION: "us-east-1"
           AWS_S3_BUCKET: "demo-sfa.web3auth.io"
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
