@@ -125,6 +125,16 @@ describe("SFA SDK unit tests", function () {
       expect(web3auth.provider).not.toEqual(privateKeyProvider);
     });
 
+    it("should set useDkg flag when provided in constructor", async function () {
+      const privateKeyProvider = new EthereumPrivateKeyProvider({
+        config: mainnetChainConfig,
+      });
+
+      const web3auth = new Web3Auth({ clientId: "test", privateKeyProvider, useDkg: false, web3AuthNetwork: "sapphire_devnet" });
+      await web3auth.init();
+      expect(web3auth.coreOptions.useDkg).toEqual(false);
+    });
+
     describe("Default values", function () {
       let privateKeyProvider: EthereumPrivateKeyProvider;
       let web3auth: Web3Auth;
@@ -153,6 +163,10 @@ describe("SFA SDK unit tests", function () {
 
       it("should set mode to WEB if not provided in constructor", function () {
         expect(web3auth.coreOptions.mode).toBe(SDK_MODE.WEB);
+      });
+
+      it("should set dkg to true if not provided in constructor", function () {
+        expect(web3auth.coreOptions.useDkg).toBe(true);
       });
     });
   });

@@ -93,7 +93,7 @@ export class Web3Auth extends SafeEventEmitter<Web3AuthSfaEvents> implements IWe
       mode: options.mode || SDK_MODE.WEB,
     };
 
-    this.coreOptions.useDkg = this.isSapphireNetwork() ? options.useDkg || true : true;
+    this.coreOptions.useDkg = this.isSapphireNetwork() ? (options.useDkg ?? true) : true;
 
     this.privKeyProvider = options.privateKeyProvider;
     if (options.accountAbstractionProvider) {
