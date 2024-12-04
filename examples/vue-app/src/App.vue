@@ -111,7 +111,9 @@ watch(formData.value, async () => {
   initW3A();
 });
 
-const onDoNothing = () => {};
+const onDoNothing = () => {
+  window.open("https://web3auth.io/docs/sdk/sfa/sfa-js", "_blank");
+};
 
 const isDisplay = (key: string) => {
   switch (key) {
