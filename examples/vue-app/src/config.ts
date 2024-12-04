@@ -37,9 +37,9 @@ export type FormData = {
   chain: string;
 };
 
-export const networkOptions = Object.values(WEB3AUTH_NETWORK).map((x) => ({ name: x, value: x }));
+export const networkOptions = [WEB3AUTH_NETWORK.TESTNET, WEB3AUTH_NETWORK.SAPPHIRE_DEVNET].map((x) => ({ name: x, value: x }));
 
-export const chainNamespaceOptions = Object.values(CHAIN_NAMESPACES).map((x) => ({ name: x, value: x }));
+export const chainNamespaceOptions = [CHAIN_NAMESPACES.EIP155, CHAIN_NAMESPACES.SOLANA].map((x) => ({ name: x, value: x }));
 
 export const chainConfigs: Record<ChainNamespaceType, CustomChainConfig[]> = {
   [CHAIN_NAMESPACES.EIP155]: [
